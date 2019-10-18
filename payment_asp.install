@@ -1,0 +1,85 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for File module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function payment_asp_schema() {
+  $schema['payment_asp_pd'] = array(
+    'description' => 'Track where a file is used.',
+    'fields' => array(
+      'pd_id' => array(
+        'description' => 'ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'p_fk_id' => array(
+        'description' => 'Payment foreign key',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'sps_transaction_id' => array(
+        'description' => 'Tracking ID for payment trasaction to SBS',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'tracking_id' => array(
+        'description' => 'Tracking ID for payment trasaction to SBS',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'processing_datetime' => array(
+        'description' => 'Datetime proccessing',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array(
+      'pd_id', 
+    ),
+    'indexes' => array(
+      'p_fk_id' => array(
+        'p_fk_id',
+      ),
+    ),
+    'foreign keys' => array(
+      'p_fk_id' => array(
+        'table' => 'commerce_payment',
+        'columns' => array('payment_id' => 'payment_id'),
+      ),
+    ),
+  );
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function payment_asp_install() {
+  // $values = array(
+  //   // A unique ID for the block instance.
+  //   'id' => 'paymentasp_checkout_block',
+  //   // The plugin block id as defined in the class.
+  //   'plugin' => 'PaymentASP Checkout Block',
+  //   // The machine name of the theme region.
+  //   'region' => 'content',
+  //   'settings' => array(
+  //     'label' => 'Execute PHP',
+  //   ),
+  //   // The machine name of the theme.  
+  //   'theme' => 'bootstrap_mint',
+  //   'visibility' => array(),
+  //   'weight' => 100,
+  // );
+  // $block = \Drupal\block\Entity\Block::create($values);
+  // $block->save();
+}

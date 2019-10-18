@@ -1,0 +1,8 @@
+payment_aspjs:
+  version: 1.x
+  js:
+    js/payment_linktype.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupalSettings

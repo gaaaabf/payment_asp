@@ -1,0 +1,6 @@
+name : 'Payment ASP'
+description : 'Module that supports multi payment APIS on commerce checkout'
+core: 8.x
+type: module
+dependencies:
+  - commerce:commerce_payment

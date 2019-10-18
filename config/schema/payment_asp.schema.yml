@@ -1,0 +1,29 @@
+# config/schema/payment_asp.schema.yml
+payment_asp.payment_asp_gateway.plugin.credit_card:
+  type: payment_asp_gateway_configuration
+  mapping:
+    merchant_id:
+      type: string
+      label: 'Merchant id'
+    service_id:
+      type: string
+      label: 'Service id'
+    hashkey:
+      type: string
+      label: 'Hashkey'
+
+payment_asp.payment_asp_gateway.plugin.link_type:
+  type: payment_asp_gateway_configuration
+  mapping:
+    method_type:
+      type: string
+      label: 'Method Type'
+    merchant_id:
+      type: string
+      label: 'Merchant Id'
+    service_id:
+      type: string
+      label: 'Service id'
+    hashkey:
+      type: string
+      label: 'Hashkey'

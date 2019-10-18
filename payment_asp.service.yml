@@ -1,0 +1,4 @@
+  
+services:
+    payment_aps.PaymentASPController:
+        class: Drupal\payment_aps\PaymentASPController

@@ -1,0 +1,11 @@
+{
+    "name": "drupal/payment_asp",
+    "type": "drupal-module",
+    "description": "Provides Commerce integration for SBS",
+    "license": "Apache-2.0",
+    "keywords": ["Drupal"],
+    "minimum-stability": "dev",
+    "require": {
+        "symfony/http-client": "dev-master",
+    }
+}
