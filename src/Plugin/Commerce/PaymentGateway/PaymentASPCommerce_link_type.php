@@ -117,7 +117,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	    'merchant_id' => $this->configuration['merchant_id'],
 	    'service_id' => $this->configuration['service_id'],
 	    'cust_code' => $orderData['cust_code'],
-					'sps_cust_no' => '123654789541',
+					'sps_cust_no' => '12365478',
 					'sps_payment_no' => '123',
 	    'order_id' => $orderData['order_id'],
 	    'item_id' => 'T_0003',

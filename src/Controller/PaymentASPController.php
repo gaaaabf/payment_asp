@@ -57,7 +57,7 @@
       $merchant_id              = $merchant_id;
       $service_id               = $service_id;
       $cust_code                = $data['cust_code'].date("Ymdhms");
-      $order_id                 = $data['order_id']+900;
+      $order_id                 = $data['order_id'];
       $item_id                  = "ITEMID00000000000000000000000001";
       $item_name                = "テスト商品";
       $tax                      = "1";

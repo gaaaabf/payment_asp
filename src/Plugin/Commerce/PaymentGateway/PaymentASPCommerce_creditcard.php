@@ -2,7 +2,6 @@
 
 namespace Drupal\payment_asp\Plugin\Commerce\PaymentGateway;
 
-require_once 'HTTP_Request2-trunk/HTTP/Request2.php';
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -77,7 +76,6 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 	    ];
 
 	    return $form;
-		// return $this->buildRedirectForm($form, $form_state);
 	}
 
   	/**
@@ -95,16 +93,16 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
    	* {@inheritdoc}
    	*/
 	public function createPayment(PaymentInterface $payment, $capture = TRUE) {
-		$payment_method = $payment->getPaymentMethod();
-
-		if (isset($payment_method)) {
-			$payment_method->delete();
-		}
 
 		$amount = $payment->getAmount()->getNumber();
 		$currency_code = $payment->getAmount()->getCurrencyCode();
 		$order = $payment->getOrder();
 		$order_id = $payment->getOrderId();
+		$payment_method = $payment->getPaymentMethod();
+
+		if (isset($payment_method)) {
+			$payment_method->delete();
+		}
 
 		$username = $this->configuration['merchant_id'] . $this->configuration['service_id'];
 		$password = $this->configuration['hashkey'];
@@ -134,22 +132,25 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 		$xml = simplexml_load_string($content);
 		$result = (string) $xml->res_result;
 
-		// $response->cancel();
-		// $payment->setState($next_state);
-		// $payment->setRemoteId($response->transaction->id);
-		// $payment->setExpiresTime(strtotime('+5 days'));
-		// $payment->save();
-		
-		$response->__destruct();
 
+		$response->cancel();
+		// $response->__destruct(); 
 		ksm($content);
-		ksm($response);
-
 		unset($_SESSION["cc_data"]);
 
 		if($result == 'NG') {
+			// \Drupal::moduleHandler()->alter('flot_examples_toc', $order);
+			drupal_set_message('Payment has not gone through. Please check you credit card detials', 'error');
+
 		} elseif ($result == 'OK') {
+			// Create payment to save to database
+			$payment->setState($next_state);
+			$payment->setRemoteId($response->transaction->id);
+			$payment->setExpiresTime(strtotime('+5 days'));
+			$payment->save();
+
 			$field_arr = [
+				'p_fk_id' => $payment->id(),
 				'tracking_id' => (string) $xml->res_tracking_id,
 				'sps_transaction_id' => (string) $xml->res_sps_transaction_id,
 				'processing_datetime' => (string) $xml->res_process_date,
@@ -164,7 +165,7 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 	}
 
   	public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
-  		die('sa capture payment');
+  		die('sa capture paymheader("Refresh:0");ent');
   	}
 
   	/**
@@ -177,6 +178,7 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 			'number' => $payment_details['number'],
 			'security_code' => $payment_details['security_code'],
 			'expiration' => $payment_details['expiration']['year'] . $payment_details['expiration']['month'],
+			'payment_installment' => $payment_details['payment_installment'],
 		];
 	}
 
