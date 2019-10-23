@@ -102,7 +102,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	* {@inheritdoc}
 	*/
 	public function onNotify(Request $request) {
-		ksm($request);
+		// ksm($request);
 	}
 
 	/**

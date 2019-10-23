@@ -6,13 +6,6 @@ use Drupal\payment_asp\Controller\PaymentASPController;
 use Drupal\commerce_payment\PaymentOption;
 
 /**
-* Implements hook_commerce_checkout_pane_info_alter(array &$panes).
-*/
-// function payment_asp_commerce_checkout_pane_info_alter(array &$panes) {
-// 	ksm($panes);
-// }
-
-/**
 * Implements hook_form_alter(&$form, FormStateInterface $form_state, $form_id).
 */
 function payment_asp_form_alter(&$form, FormStateInterface $form_state, $form_id) {
@@ -23,8 +16,6 @@ function payment_asp_form_alter(&$form, FormStateInterface $form_state, $form_id
 	// 		$order->set('cart', 1);
 	// 		$order->set('locked', 0);
 	// 		$order->save();
-
-	// ksm($order);
 
 	// Commerce Checkout step "Order Information"
 	if($form_id == 'commerce_checkout_flow_multistep_default' && $form['#step_id'] == 'order_information') {
@@ -64,7 +55,7 @@ function payment_asp_form_alter(&$form, FormStateInterface $form_state, $form_id
 	// Refund
 	if($form_id == 'commerce_payment_payment_manual_operation_form') {
 		// ksm($form);
-		$form['actions']['submit']['#submit'][] = 'payment_asp_form_submit';
+		// $form['actions']['submit']['#submit'][] = 'payment_asp_form_submit';
 	}
 
 
@@ -75,41 +66,9 @@ function payment_asp_form_alter(&$form, FormStateInterface $form_state, $form_id
 	// 					->execute();
 
 	// $query2 = \Drupal::database();
-
-	// // $xx = [];
-	// // foreach ($query as $key => $value) {
-	// // 	array_push($xx, $key);
-	// // }
-	// // ksm($xx);
-	// ksm($query);
-	// ksm($query2);
-
-
-	// 	// unset($form['payment_information']);
-	// 	// $form['payment_information'] = [];
-	// 	// $form['payment_information']['#access'] = FALSE;
-	// 	if($form['#step_id'] == 'order_information') {
-	// 		$block_manager = \Drupal::service('plugin.manager.block');
-	// 		// You can hard code configuration or you load from settings.
-	// 		$config = [];
-	// 		$plugin_block = $block_manager->createInstance('PaymentASP Checkout Block', $config);
-	// 		// Some blocks might implement access check.
-	// 		$access_result = $plugin_block->access(\Drupal::currentUser());
-	// 		// Return empty render array ifuser doesn't have access.
-	// 		// $access_result can be boolean or an AccessResult class
-	// 		if(is_object($access_result) && $access_result->isForbidden() || is_bool($access_result) && !$access_result) {
-	// 		  // You might need to add some cache tags/contexts.
-	// 		  return [];
-	// 		}
-	// 		$render = $plugin_block->build();
-	// 		$form['payment_information'] = $render;
-	// 		$form['actions']['next']['#submit'][] = 'payment_asp_form_submit';
-	// 		ksm($form_state);
-	// 	}
-
-	// ADDED CUSTOM SUBMIT HANDLER
-	// if($form_id == 'commerce_checkout_flow_multistep_default' && $form['#step_id'] == 'order_information') {
-	// 	$form['actions']['next']['#submit'][] = 'payment_asp_form_submit';
+	// $xx = [];
+	// foreach ($query as $key => $value) {
+	// 	array_push($xx, $key);
 	// }
 }
 
@@ -117,6 +76,3 @@ function payment_asp_form_alter(&$form, FormStateInterface $form_state, $form_id
 function payment_asp_form_submit(array $form, FormStateInterface $form_state) {
 	drupal_set_message('mao ray nahitabo', 'error');
 }
-
-// function payment_asp_flot_examples_toc_alter(&$order) {
-// }

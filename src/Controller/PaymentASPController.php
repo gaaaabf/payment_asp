@@ -12,12 +12,7 @@
     	$current_uri = \Drupal::request()->getRequestUri();
     	$current_uri = explode('/', $current_uri);
     	$order_id = $current_uri[3];
-    	// $order = \Drupal::entityTypeManager()
-			  // ->getStorage('commerce_order')
-			  // ->loadByProperties(['uid' => $uid	, 'cart' => '0']);
-    	// $store = \Drupal::service('commerce_store.current_store')->getStore();
-    	// $cart = \Drupal::service('commerce_cart.cart_provider')
-  			// ->getCart('default', $store);
+
     	$order = \Drupal\commerce_order\Entity\Order::load($order_id);
 
       $orderDetail = [];

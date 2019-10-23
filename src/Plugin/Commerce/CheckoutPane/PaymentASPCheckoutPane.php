@@ -20,6 +20,12 @@ class PaymentASPCheckoutPane extends CheckoutPaneBase {
   /**
    * {@inheritdoc}
    */
+  public function isVisible() {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form) {
     /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface $payment_gateway */
     $payment_gateway = $this->order->payment_gateway->entity;
@@ -32,33 +38,39 @@ class PaymentASPCheckoutPane extends CheckoutPaneBase {
       'payment_gateway' => $payment_gateway->id(),
       'order_id' => $this->order->id(),
     ]);
-    $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
 
-    $result = $payment_gateway_plugin->createPayment($payment);
+    if ($payment_gateway_plugin['#id'] = 'edit-payment-process-offsite-payment') {
+      $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
+    } else {
+      
+      $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
+      $result = $payment_gateway_plugin->createPayment($payment);
 
-    if($result == 'NG') {
-      $this->redirectToCart();
-    } elseif($result == 'OK') {
-      // // Create payment to save to database
-      // $payment->setState($next_state);
-      // $payment->setRemoteId($response->transaction->id);
-      // $payment->setExpiresTime(strtotime('+5 days'));
-      // $payment->save();
+        if($result == 'NG') {
+          $this->redirectToCart();
+        } elseif($result == 'OK') {
+          // Create payment to save to database
+          $payment->setState($next_state);
+          $payment->setRemoteId($response->transaction->id);
+          $payment->setExpiresTime(strtotime('+5 days'));
+          $payment->save();
 
-      // $field_arr = [
-      //   'p_fk_id' => $payment->id(),
-      //   'tracking_id' => (string) $xml->res_tracking_id,
-      //   'sps_transaction_id' => (string) $xml->res_sps_transaction_id,
-      //   'processing_datetime' => (string) $xml->res_process_date,
-      // ];
-      // // Save to database
-      // $query = \Drupal::database();
-      // $query->insert('payment_asp_pd')
-      //       ->fields($field_arr)
-      //       ->execute();
-      unset($_SESSION["cc_data"]);
-      $this->checkoutFlow->redirectToStep($next_step_id);
+          $field_arr = [
+            'p_fk_id' => $payment->id(),
+            'tracking_id' => (string) $xml->res_tracking_id,
+            'sps_transaction_id' => (string) $xml->res_sps_transaction_id,
+            'processing_datetime' => (string) $xml->res_process_date,
+          ];
+          // Save to database
+          $query = \Drupal::database();
+          $query->insert('payment_asp_pd')
+                ->fields($field_arr)
+                ->execute();
+          unset($_SESSION["cc_data"]);
+          $this->checkoutFlow->redirectToStep($next_step_id);
+        }
     }
+
   }
 
   /**

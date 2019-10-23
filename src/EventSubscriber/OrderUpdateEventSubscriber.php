@@ -19,7 +19,7 @@ class OrderUpdateEventSubscriber implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     $events = [
-      OrderEvents::ORDER_PRESAVE => 'onOrderPlace',
+      OrderEvents::ORDER_UPDATE => 'onOrderPlace',
     ];
     // $events = ['commerce_order.place.post_transition' => 'onOrderPlace'];
     return $events;
@@ -29,6 +29,5 @@ class OrderUpdateEventSubscriber implements EventSubscriberInterface {
    * Preprocessing the responsive image.
    */
   public function onOrderPlace(OrderEvent $event) {
-
   }
 }

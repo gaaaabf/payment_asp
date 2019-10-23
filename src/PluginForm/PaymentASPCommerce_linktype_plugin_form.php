@@ -23,7 +23,7 @@ class PaymentASPCommerce_linktype_plugin_form extends BasePaymentOffsiteForm {
     $postdata = $payment_gateway_plugin->getOrderData();
 
     // die(print_r($postdata));
-		ksm($form);
+		// ksm($form);
 	  return $this->buildRedirectForm(
 		  $form,
 		  $form_state,

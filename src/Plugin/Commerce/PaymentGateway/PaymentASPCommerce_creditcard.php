@@ -136,7 +136,6 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 
 		$response->cancel();
 		// $response->__destruct(); 
-		// ksm($content);
 
 		return $result;
 	}
@@ -149,7 +148,6 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
    	* {@inheritdoc}
    	*/
 	public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
-		ksm($payment_details);
 		session_start();
 		$_SESSION["cc_data"] = [
 			'number' => $payment_details['number'],
