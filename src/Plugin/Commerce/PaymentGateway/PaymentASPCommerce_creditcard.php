@@ -10,6 +10,7 @@ use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayI
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\payment_asp\Controller\PaymentASPController;
+use Drupal\Core\Url;
 
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Serializer\Serializer;
@@ -100,7 +101,7 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 		$order_id = $payment->getOrderId();
 		$payment_method = $payment->getPaymentMethod();
 
-		if (isset($payment_method)) {
+		if(isset($payment_method)) {
 			$payment_method->delete();
 		}
 
@@ -135,33 +136,9 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 
 		$response->cancel();
 		// $response->__destruct(); 
-		ksm($content);
-		unset($_SESSION["cc_data"]);
+		// ksm($content);
 
-		if($result == 'NG') {
-			// \Drupal::moduleHandler()->alter('flot_examples_toc', $order);
-			drupal_set_message('Payment has not gone through. Please check you credit card detials', 'error');
-
-		} elseif ($result == 'OK') {
-			// Create payment to save to database
-			$payment->setState($next_state);
-			$payment->setRemoteId($response->transaction->id);
-			$payment->setExpiresTime(strtotime('+5 days'));
-			$payment->save();
-
-			$field_arr = [
-				'p_fk_id' => $payment->id(),
-				'tracking_id' => (string) $xml->res_tracking_id,
-				'sps_transaction_id' => (string) $xml->res_sps_transaction_id,
-				'processing_datetime' => (string) $xml->res_process_date,
-			];
-			// Save to database
-			$query = \Drupal::database();
-			$query->insert('payment_asp_pd')
-				->fields($field_arr)
-				->execute();
-		}
-
+		return $result;
 	}
 
   	public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
