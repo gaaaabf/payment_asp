@@ -21,6 +21,14 @@ class PaymentASPCheckoutPane extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function isVisible() {
+    if ($this->order->payment_gateway->entity !== null) {
+      $payment_gateway = $this->order->payment_gateway->entity->getPluginId();
+    }
+    if (isset($payment_gateway) && $payment_gateway == 'payment_asp_link_type') {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   /**
@@ -39,10 +47,10 @@ class PaymentASPCheckoutPane extends CheckoutPaneBase {
       'order_id' => $this->order->id(),
     ]);
 
-    if ($payment_gateway_plugin['#id'] = 'edit-payment-process-offsite-payment') {
+    if ($payment_gateway_plugin->getPluginId() == 'payment_asp_link_type') {
       $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
-    } else {
-      
+    } elseif ($payment_gateway_plugin->getPluginId() == 'payment_asp_credit_card') {
+
       $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
       $result = $payment_gateway_plugin->createPayment($payment);
 

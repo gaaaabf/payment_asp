@@ -10,6 +10,8 @@ use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGateway
 use Drupal\commerce_order\Entity\OrderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\payment_asp\Controller\PaymentASPController;
+use Drupal\commerce_payment\Entity\PaymentInterface;
+
 
 
 /**
@@ -106,18 +108,19 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	}
 
 	/**
-	* {@inheritdoc}
+	* Gets the order data from Controller
 	*/
-	public function getOrderData() {
+	public function getOrderData(PaymentInterface $payment) {
+    $order = $payment->getOrder();
 		$pc = new PaymentASPController;
-		$orderData = $pc->getOrderDetails();
+		$orderData = $pc->getOrderDetails($order);
 
 		$postdata = [
 	    'pay_method' => $this->configuration['method_type'],
 	    'merchant_id' => $this->configuration['merchant_id'],
 	    'service_id' => $this->configuration['service_id'],
 	    'cust_code' => $orderData['cust_code'],
-					'sps_cust_no' => '12365478',
+					'sps_cust_no' => '123654789111',
 					'sps_payment_no' => '123',
 	    'order_id' => $orderData['order_id'],
 	    'item_id' => 'T_0003',

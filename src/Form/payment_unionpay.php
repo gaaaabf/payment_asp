@@ -24,7 +24,7 @@ class payment_unionpay extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $pc = new PaymentASPController();
-    $order = $pc->getOrderDetails();
+    // $order = $pc->getOrderDetails();
     $order['pay_method'] = 'unionpay';
 
     $form['payment_method_choosen'] = array(

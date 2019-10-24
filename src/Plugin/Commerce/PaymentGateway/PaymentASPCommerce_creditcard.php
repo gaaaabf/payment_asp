@@ -109,7 +109,7 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 		$password = $this->configuration['hashkey'];
 
 		$pc = new PaymentASPController;
-		$postdata = $pc->getOrderDeatilsAPI($this->configuration['merchant_id'], $this->configuration['service_id'], $this->configuration['hashkey']);
+		$postdata = $pc->getOrderDeatilsAPI($this->configuration['merchant_id'], $this->configuration['service_id'], $this->configuration['hashkey'], $order);
 
 		// 接続URL
 		$url = "https://stbfep.sps-system.com/api/xmlapi.do";

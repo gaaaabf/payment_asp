@@ -7,13 +7,15 @@
 	  
 	  }
 
-    public function getOrderDetails() {
-    	$uid = \Drupal::currentUser()->id();
-    	$current_uri = \Drupal::request()->getRequestUri();
-    	$current_uri = explode('/', $current_uri);
-    	$order_id = $current_uri[3];
+    public function getOrderDetails($order) {
+    	// $uid = \Drupal::currentUser()->id();
+    	// $current_uri = \Drupal::request()->getRequestUri();
+    	// $current_uri = explode('/', $current_uri);
+    	// $order_id = $current_uri[3];
 
-    	$order = \Drupal\commerce_order\Entity\Order::load($order_id);
+    	// $order = \Drupal\commerce_order\Entity\Order::load($order_id);
+
+      $order_id = $order->id();
 
       $orderDetail = [];
       $perItem = [];
@@ -44,9 +46,9 @@
       return $data_needed;
     }
 
-    public function getOrderDeatilsAPI($merchant_id, $service_id, $hashkey) {
+    public function getOrderDeatilsAPI($merchant_id, $service_id, $hashkey, $order) {
 
-      $data = $this->getOrderDetails();
+      $data = $this->getOrderDetails($order);
 
       // API送信データ
       $merchant_id              = $merchant_id;
