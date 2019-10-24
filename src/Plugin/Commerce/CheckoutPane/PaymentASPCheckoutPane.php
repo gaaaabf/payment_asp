@@ -87,7 +87,7 @@ class PaymentASPCheckoutPane extends CheckoutPaneBase {
   protected function redirectToCart() {
     drupal_set_message('Payment has not gone through. Please check you credit card detials', 'error');
     $this->order->get('checkout_flow')->setValue(NULL);
-    $this->order->get('checkout_step')->setValue('review');
+    $this->order->get('checkout_step')->setValue(NULL);
     $this->order->unlock();
     $this->order->save();
     throw new NeedsRedirectException(Url::fromRoute('commerce_cart.page')->toString());
