@@ -5,8 +5,10 @@ namespace Drupal\payment_asp\PluginForm;
 use Drupal\commerce_payment\PluginForm\PaymentRefundForm as PaymentRefundFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\commerce_price\Price;
+use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsRefundsInterface;
 
-class PaymentASPRefundForm extends PaymentRefundFormBase {
+
+class PaymentASPRefundForm extends PaymentRefundFormBase implements SupportsRefundsInterface {
 
   /**
    * {@inheritdoc}

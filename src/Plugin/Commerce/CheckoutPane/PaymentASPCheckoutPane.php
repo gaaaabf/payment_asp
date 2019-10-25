@@ -58,9 +58,8 @@ class PaymentASPCheckoutPane extends CheckoutPaneBase {
           $this->redirectToCart();
         } elseif($result == 'OK') {
           // Create payment to save to database
-          $payment->setState($next_state);
-          $payment->setRemoteId($response->transaction->id);
-          $payment->setExpiresTime(strtotime('+5 days'));
+          $payment->setState('Completed');
+          // $payment->setRemoteId($response->transaction->id);
           $payment->save();
 
           $field_arr = [
@@ -74,7 +73,8 @@ class PaymentASPCheckoutPane extends CheckoutPaneBase {
           $query->insert('payment_asp_pd')
                 ->fields($field_arr)
                 ->execute();
-          unset($_SESSION["cc_data"]);
+          $order_id = $this->order->id();
+          unset($_SESSION[$order_id."cc_data"]);
           $this->checkoutFlow->redirectToStep($next_step_id);
         }
     }

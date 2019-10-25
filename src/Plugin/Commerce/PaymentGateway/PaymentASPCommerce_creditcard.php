@@ -23,8 +23,8 @@ use Symfony\Component\Serializer\Serializer;
  *   label = "Payment ASP Credit Card",
  *   display_label = "Payment ASP Credit Card",
  *   forms = {
- *     "input_cc_details" = "Drupal\payment_asp\Form\payment_creditcard",
- *		 "refund-payment" = "Drupal\payment_asp\PluginForm\PaymentASPRefundForm",
+ *     "add-payment-method" = "Drupal\payment_asp\PluginForm\PaymentASPMethodAddForm_creditcard",
+ *	   "refund-payment" = "Drupal\payment_asp\PluginForm\PaymentASPRefundForm",
  *   },
  *   payment_method_types = {"credit_card"},
  *   credit_card_types = {
@@ -37,7 +37,7 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 	/**
 	* Gets current payment details
 	*/	
-	protected $payment_details = [];
+	protected $order_id;
 
 	/**
 	* {@inheritdoc}
@@ -50,9 +50,9 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 	  ] + parent::defaultConfiguration();
 	}
   
-  	/**
-   	* {@inheritdoc}
-   	*/
+	/**
+ 	* {@inheritdoc}
+ 	*/
 	public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
 		$form = parent::buildConfigurationForm($form, $form_state);
 
@@ -80,9 +80,9 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 	    return $form;
 	}
 
-  	/**
-   	* {@inheritdoc}
-   	*/
+	/**
+ 	* {@inheritdoc}
+ 	*/
 	public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
 		parent::submitConfigurationForm($form, $form_state);
 	    $values = $form_state->getValue($form['#parents']);
@@ -91,9 +91,9 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 	    $this->configuration['hashkey'] = $values['hashkey'];
 	}
 
-  	/**
-   	* {@inheritdoc}
-   	*/
+	/**
+ 	* {@inheritdoc}
+ 	*/
 	public function createPayment(PaymentInterface $payment, $capture = TRUE) {
 
 		$amount = $payment->getAmount()->getNumber();
@@ -134,9 +134,9 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 		$xml = simplexml_load_string($content);
 		$result = (string) $xml->res_result;
 
-
 		$response->cancel();
-		// $response->__destruct(); 
+		// $response->__destruct();
+		// ksm($content);
 
 		return $result;
 	}
@@ -144,17 +144,19 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
   	public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
   	}
 
-  	/**
-   	* {@inheritdoc}
-   	*/
+	/**
+ 	* {@inheritdoc}
+ 	*/
 	public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
 		session_start();
-		$_SESSION["cc_data"] = [
-			'number' => $payment_details['number'],
-			'security_code' => $payment_details['security_code'],
-			'expiration' => $payment_details['expiration']['year'] . $payment_details['expiration']['month'],
-			'payment_installment' => $payment_details['payment_installment'],
-		];
+		$order_id = $payment_method;
+		// ksm($payment_method);
+		// $_SESSION[$order_id."cc_data"] = [
+		// 	'number' => $payment_details['number'],
+		// 	'security_code' => $payment_details['security_code'],
+		// 	'expiration' => $payment_details['expiration']['year'] . $payment_details['expiration']['month'],
+		// 	'payment_installment' => $payment_details['payment_installment'],
+		// ];
 	}
 
 	/**

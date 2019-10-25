@@ -52,6 +52,9 @@ class PaymentASPController extends ControllerBase {
   public function getOrderDeatilsAPI($merchant_id, $service_id, $hashkey, $order) {
 
     $data = $this->getOrderDetails($order);
+    $order_id = $order->id();
+
+    ksm($_SESSION[$order_id."cc_data"]);
 
     // API送信データ
     $merchant_id              = $merchant_id;
@@ -67,9 +70,9 @@ class PaymentASPController extends ControllerBase {
     $free3                    = "";
     $order_rowno              = "";
     $sps_cust_info_return_flg = "1";
-    $cc_number                = $_SESSION["cc_data"]['number'];
-    $cc_expiration            = $_SESSION["cc_data"]['expiration'];
-    $security_code            = $_SESSION["cc_data"]['security_code'];
+    $cc_number                = $_SESSION[$order_id."cc_data"]['number'];
+    $cc_expiration            = $_SESSION[$order_id."cc_data"]['expiration'];
+    $security_code            = $_SESSION[$order_id."cc_data"]['security_code'];
     // $cc_number                = "5250729026209007";
     // $cc_expiration            = "201103";
     // $security_code            = "798";
