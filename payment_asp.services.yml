@@ -1,6 +1,6 @@
 services:
   payment_aps.PaymentASPController:
-      class: Drupal\payment_aps\PaymentASPController
+    class: Drupal\payment_asp\Controller\PaymentASPController
 
   payment_aps.commerce_order.commerce_order.update:
     class: Drupal\payment_asp\EventSubscriber\OrderUpdateEventSubscriber
