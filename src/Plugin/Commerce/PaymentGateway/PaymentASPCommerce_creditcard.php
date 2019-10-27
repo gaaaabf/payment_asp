@@ -35,11 +35,6 @@ use Symfony\Component\Serializer\Serializer;
 class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 
 	/**
-	* Gets current payment details
-	*/	
-	protected $order_id;
-
-	/**
 	* {@inheritdoc}
 	*/
 	public function defaultConfiguration() {
@@ -141,22 +136,23 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 		return $result;
 	}
 
-  	public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
-  	}
+	public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
+	}
 
 	/**
  	* {@inheritdoc}
  	*/
 	public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
 		session_start();
-		$order_id = $payment_method;
-		// ksm($payment_method);
-		// $_SESSION[$order_id."cc_data"] = [
-		// 	'number' => $payment_details['number'],
-		// 	'security_code' => $payment_details['security_code'],
-		// 	'expiration' => $payment_details['expiration']['year'] . $payment_details['expiration']['month'],
-		// 	'payment_installment' => $payment_details['payment_installment'],
-		// ];
+		$isAnonymous = \Drupal::currentUser()->isAnonymous();
+		$controller = \Drupal::service('payment_aps.PaymentASPController');
+		$order_id = $controller->getOrderIdByURI();
+		$_SESSION["cc_data_".$order_id] = [
+			'number' => $payment_details['number'],
+			'security_code' => $payment_details['security_code'],
+			'expiration' => $payment_details['expiration']['year'] . $payment_details['expiration']['month'],
+			'payment_installment' => $payment_details['payment_installment'],
+		];
 	}
 
 	/**

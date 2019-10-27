@@ -10,13 +10,19 @@ class PaymentASPController extends ControllerBase {
   
   }
 
-  public function getOrderDetails($order) {
-  	// $uid = \Drupal::currentUser()->id();
-  	// $current_uri = \Drupal::request()->getRequestUri();
-  	// $current_uri = explode('/', $current_uri);
-  	// $order_id = $current_uri[3];
+  public function getOrderIdByURI() {
+  	$current_uri = \Drupal::request()->getRequestUri();
+  	$current_uri = explode('/', $current_uri);
+    for ($i=0; $i != sizeof($current_uri) ; $i++) { 
+     if (is_numeric($current_uri[$i])) {
+       $order_id = $current_uri[$i];
+     }
+    }
 
-  	// $order = \Drupal\commerce_order\Entity\Order::load($order_id);
+    return $order_id; 
+  }
+
+  public function getOrderDetails($order) {
 
     $order_id = $order->id();
 
@@ -54,8 +60,6 @@ class PaymentASPController extends ControllerBase {
     $data = $this->getOrderDetails($order);
     $order_id = $order->id();
 
-    ksm($_SESSION[$order_id."cc_data"]);
-
     // API送信データ
     $merchant_id              = $merchant_id;
     $service_id               = $service_id;
@@ -70,9 +74,9 @@ class PaymentASPController extends ControllerBase {
     $free3                    = "";
     $order_rowno              = "";
     $sps_cust_info_return_flg = "1";
-    $cc_number                = $_SESSION[$order_id."cc_data"]['number'];
-    $cc_expiration            = $_SESSION[$order_id."cc_data"]['expiration'];
-    $security_code            = $_SESSION[$order_id."cc_data"]['security_code'];
+    $cc_number                = $_SESSION["cc_data_".$order_id]['number'];
+    $cc_expiration            = $_SESSION["cc_data_".$order_id]['expiration'];
+    $security_code            = $_SESSION["cc_data_".$order_id]['security_code'];
     // $cc_number                = "5250729026209007";
     // $cc_expiration            = "201103";
     // $security_code            = "798";

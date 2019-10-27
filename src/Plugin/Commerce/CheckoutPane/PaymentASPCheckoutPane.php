@@ -74,7 +74,7 @@ class PaymentASPCheckoutPane extends CheckoutPaneBase {
                 ->fields($field_arr)
                 ->execute();
           $order_id = $this->order->id();
-          unset($_SESSION[$order_id."cc_data"]);
+          unset($_SESSION["cc_data_".$order_id]);
           $this->checkoutFlow->redirectToStep($next_step_id);
         }
     }
