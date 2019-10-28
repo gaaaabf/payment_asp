@@ -51,26 +51,24 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 	public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
 		$form = parent::buildConfigurationForm($form, $form_state);
 
-	    $form['merchant_id'] = [
-	      '#type' => 'textfield',
-	      '#title' => $this->t('Merchant id'),
-	      '#default_value' => $this->configuration['merchant_id'],
-	      '#required' => TRUE,
-	    ];
-
-	    $form['service_id'] = [
-	      '#type' => 'textfield',
-	      '#title' => $this->t('Service id'),
-	      '#default_value' => $this->configuration['service_id'],
-	      '#required' => TRUE,
-	    ];
-
-	    $form['hashkey'] = [
-	      '#type' => 'textfield',
-	      '#title' => $this->t('Hashkey'),
-	      '#default_value' => $this->configuration['hashkey'],
-	      '#required' => TRUE,
-	    ];
+    $form['service_id'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Service id'),
+      '#default_value' => $this->configuration['service_id'],
+      '#required' => TRUE,
+    ];
+    $form['hashkey'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Hashkey'),
+      '#default_value' => $this->configuration['hashkey'],
+      '#required' => TRUE,
+    ];
+    $form['merchant_id'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Merchant id'),
+      '#default_value' => $this->configuration['merchant_id'],
+      '#required' => TRUE,
+    ];
 
 	    return $form;
 	}
@@ -131,7 +129,7 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 
 		$response->cancel();
 		// $response->__destruct();
-		// ksm($content);
+		ksm($content);
 
 		return $result;
 	}
@@ -145,8 +143,7 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
 	public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
 		session_start();
 		$isAnonymous = \Drupal::currentUser()->isAnonymous();
-		$controller = \Drupal::service('payment_aps.PaymentASPController');
-		$order_id = $controller->getOrderIdByURI();
+		$order_id = \Drupal::service('payment_aps.PaymentASPController')->getOrderIdByURI();
 		$_SESSION["cc_data_".$order_id] = [
 			'number' => $payment_details['number'],
 			'security_code' => $payment_details['security_code'],

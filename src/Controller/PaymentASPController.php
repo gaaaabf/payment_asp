@@ -109,35 +109,68 @@ class PaymentASPController extends ControllerBase {
     $limit_second             = mb_convert_encoding($limit_second, 'Shift_JIS', 'UTF-8');
     $hashkey                  = mb_convert_encoding($hashkey, 'Shift_JIS', 'UTF-8');
 
-    // 送信情報データ連結
-    $result =
-        $merchant_id .
-        $service_id .
-        $cust_code .
-        $order_id .
-        $item_id .
-        $item_name .
-        $tax .
-        $amount .
-        $free1 .
-        $free2 .
-        $free3 .
-        $order_rowno .
-        $sps_cust_info_return_flg .
-        $cc_number .
-        $cc_expiration .
-        $security_code .
-        $cust_manage_flg .
-        $encrypted_flg .
-        $request_date .
-        $limit_second .
-        $hashkey;
+    if ($_SESSION["cc_data_".$order_id]['payment_installment'] != 'One-time payment') {
+      $cardbrand_return_flg = "0";
+      $div_settele = "0";
+      $last_charge_month = "";
+      $camp_type = "0";
+
+      $cardbrand_return_flg = mb_convert_encoding($cardbrand_return_flg, 'Shift_JIS', 'UTF-8');
+      $div_settele = mb_convert_encoding($div_settele, 'Shift_JIS', 'UTF-8');
+      $last_charge_month = mb_convert_encoding($last_charge_month, 'Shift_JIS', 'UTF-8');
+      $camp_type = mb_convert_encoding($camp_type, 'Shift_JIS', 'UTF-8');
+
+      // 送信情報データ連結
+      $result = $merchant_id . $service_id . $cust_code . $order_id . $item_id . $item_name . $tax . $amount . $free1 . $free2 . $free3 . $order_rowno . $sps_cust_info_return_flg . $cc_number . $cc_expiration . $security_code . $cardbrand_return_flg . $div_settele . $last_charge_month . $camp_type . $cust_manage_flg . $encrypted_flg . $request_date . $limit_second . $hashkey;
+    } else {
+      // 送信情報データ連結
+      $result = $merchant_id . $service_id . $cust_code . $order_id . $item_id . $item_name . $tax . $amount . $free1 . $free2 . $free3 . $order_rowno . $sps_cust_info_return_flg . $cc_number . $cc_expiration . $security_code . $cust_manage_flg . $encrypted_flg . $request_date . $limit_second . $hashkey;
+    }
 
     // SHA1変換
-    $sps_hashcode = sha1( $result );
+    $sps_hashcode = sha1($result);
 
     // POSTデータ生成
-    $postdata =
+    if ($_SESSION["cc_data_".$order_id]['payment_installment'] != 'One-time payment') {
+      $postdata =
+        "<?xml version=\"1.0\" encoding=\"Shift_JIS\"?>" .
+        "<sps-api-request id=\"ST01-00112-101\">" .
+            "<merchant_id>"                 . $merchant_id              . "</merchant_id>" .
+            "<service_id>"                  . $service_id               . "</service_id>" .
+            "<cust_code>"                   . $cust_code                . "</cust_code>" .
+            "<order_id>"                    . $order_id                 . "</order_id>" .
+            "<item_id>"                     . $item_id                  . "</item_id>" .
+            "<item_name>"                   . base64_encode($item_name) . "</item_name>" .
+            "<tax>"                         . $tax                      . "</tax>" .
+            "<amount>"                      . $amount                   . "</amount>" .
+            "<free1>"                       . base64_encode($free1)     . "</free1>" .
+            "<free2>"                       . base64_encode($free2)     . "</free2>" .
+            "<free3>"                       . base64_encode($free3)     . "</free3>" .
+            "<order_rowno>"                 . $order_rowno              . "</order_rowno>" .
+            "<sps_cust_info_return_flg>"    . $sps_cust_info_return_flg . "</sps_cust_info_return_flg>" .
+            "<dtls>" .
+            "</dtls>" .
+            "<pay_method_info>" .
+                "<cc_number>"               . $cc_number                . "</cc_number>" .
+                "<cc_expiration>"           . $cc_expiration            . "</cc_expiration>" .
+                "<security_code>"           . $security_code            . "</security_code>" .
+                "<cust_manage_flg>"         . $cust_manage_flg          . "</cust_manage_flg>" .
+            "</pay_method_info>" .
+            "<pay_option_manage>" .
+                "<cardbrand_return_flg>"    . $cardbrand_return_flg     . "</cardbrand_return_flg>" .
+            "</pay_option_manage>" .
+            "<monthly_charge>" .
+                "<div_settele>"             . $div_settele              . "</div_settele>" .
+                "<last_charge_month>"       . $last_charge_month        . "</last_charge_month>" .
+                "<camp_type>"               . $camp_type                . "</camp_type>" .
+            "</monthly_charge>" .
+            "<encrypted_flg>"               . $encrypted_flg            . "</encrypted_flg>" .
+            "<request_date>"                . $request_date             . "</request_date>" .
+            "<limit_second>"                . $limit_second             . "</limit_second>" .
+            "<sps_hashcode>"                . $sps_hashcode             . "</sps_hashcode>" .
+        "</sps-api-request>";
+    } else {
+      $postdata =
         "<?xml version=\"1.0\" encoding=\"Shift_JIS\"?>" .
         "<sps-api-request id=\"ST01-00101-101\">" .
             "<merchant_id>"                 . $merchant_id              . "</merchant_id>" .
@@ -168,6 +201,7 @@ class PaymentASPController extends ControllerBase {
             "<limit_second>"                . $limit_second             . "</limit_second>" .
             "<sps_hashcode>"                . $sps_hashcode             . "</sps_hashcode>" .
         "</sps-api-request>";
+    }
 
     return $postdata;
   }
@@ -175,7 +209,6 @@ class PaymentASPController extends ControllerBase {
   public function getRefundDetails() {
 
     // $query = \Drupal::database();
-    
 
     // API送信データ
     $merchant_id = '';
