@@ -142,7 +142,6 @@ class PaymentASPCommerce_creditcard extends OnsitePaymentGatewayBase {
  	*/
 	public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
 		session_start();
-		$isAnonymous = \Drupal::currentUser()->isAnonymous();
 		$order_id = \Drupal::service('payment_aps.PaymentASPController')->getOrderIdByURI();
 		$_SESSION["cc_data_".$order_id] = [
 			'number' => $payment_details['number'],
