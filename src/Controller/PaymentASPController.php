@@ -37,7 +37,11 @@ class PaymentASPController extends ControllerBase {
       $perItem['dtl_item_count'] = (int)$items[$i]->getQuantity();
 
       $taxEntity = $items[$i]->getAdjustments(array('tax'));
-      $taxPercentage = $taxEntity[0]->getPercentage()*100;
+      if($taxEntity[0] == NULL){
+        $taxPercentage = 0;
+      } else {
+        $taxPercentage = $taxEntity[0]->getPercentage()*100;
+      }
       $perItem['dtl_tax'] = (string)$taxPercentage.'%';
 
       array_push($orderDetail, $perItem);
