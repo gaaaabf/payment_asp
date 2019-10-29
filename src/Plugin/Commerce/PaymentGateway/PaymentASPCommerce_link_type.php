@@ -111,7 +111,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	* Gets the order data from Controller
 	*/
 	public function getOrderData(PaymentInterface $payment) {
-    $order = $payment->getOrder();
+   		$order = $payment->getOrder();
 		$pc = new PaymentASPController;
 		$orderData = $pc->getOrderDetails($order);
 
@@ -124,38 +124,38 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 					'sps_payment_no' => '123',
 	    'order_id' => $orderData['order_id'],
 	    'item_id' => 'T_0003',
-					'pay_item_id' => '1',
+					// 'pay_item_id' => '1',
 	    'item_name' => 'testprod',
 	    'tax' => $orderData['tax'],
 	    'amount' => $orderData['amount'],
 	    'pay_type' => '0',
-					'auto_charge_type' => '1',
+					// 'auto_charge_type' => '1',
 	    'service_type' => '0',
-					'div_settele' => '1',
-					'last_charge_month' => '1',
-					'camp_type' => '1',
-					'tracking_id' => '1',
+					// 'div_settele' => '1',
+					// 'last_charge_month' => '1',
+					// 'camp_type' => '1',
+					// 'tracking_id' => '1',
 	    'terminal_type' => '0',
 	    'success_url' => 'localhost/latestmultty/checkout/'.$orderData['order_id'].'/payment',
 	    'cancel_url' => 'localhost/latestmultty/checkout/'.$orderData['order_id'].'/payment',
 	    'error_url' => 'localhost/latestmultty/checkout/'.$orderData['order_id'].'/payment',
 	    'pagecon_url' => 'localhost/latestmultty/checkout/'.$orderData['order_id'].'/payment',
-					'free1' => '0',
-					'free2' => '0',
-					'free3' => '0',
+					// 'free1' => '0',
+					// 'free2' => '0',
+					// 'free3' => '0',
 	     //'free_csv' => 'LAST_NAME=鈴木,FIRST_NAME=太郎,LAST_NAME_KANA=スズキ,FIRST_NAME_KANA=タロウ,FIRST_ZIP=210,SECOND_ZIP=0001,ADD1=岐阜県,ADD2=あああ市あああ町,ADD3=,TEL=12345679801,MAIL=aaaa@bb.jp,ITEM_NAME=TEST ITEM",
 	     //order.request_date          = "20191011155055',
 	    'request_date' => date("Ymdhms"),
-	    		'limit_second' => '1',
+	    'limit_second' => '10',
 	    'hashkey' => $this->configuration['hashkey'],
-	    'orderDetail'=> $orderData['orderDetail']
+	    // 'orderDetail'=> $orderData['orderDetail']
 		];
 
-	  $sps_hashcode = implode(',', $form);
+	  $sps_hashcode = (String) implode(',', $postdata);
 	  // $sps_hashcode = mb_convert_encoding($sps_hashcode, 'Shift_JIS', 'UTF-8');
 	  // $sps_hashcode = utf8_encode($sps_hashcode);
+	  // die(var_dump($sps_hashcode));
 	  $sps_hashcode = sha1($sps_hashcode);
-
 	  $postdata['sps_hashcode'] = $sps_hashcode;
 
 		return $postdata;

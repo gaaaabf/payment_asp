@@ -14,7 +14,6 @@ class PaymentASPCommerce_linktype_plugin_form extends BasePaymentOffsiteForm {
 	*/
 	public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
 		$form = parent::buildConfigurationForm($form, $form_state);
-
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = $this->entity;
 
@@ -25,7 +24,8 @@ class PaymentASPCommerce_linktype_plugin_form extends BasePaymentOffsiteForm {
 	  return $this->buildRedirectForm(
 		  $form,
 		  $form_state,
-		  'https://stbfep.sps-system.com/Extra/PayRequestAction.do',
+		  // 'https://stbfep.sps-system.com/Extra/PayRequestAction.do',
+		  'https://stbfep.sps-system.com/f01/FepBuyInfoReceive.do',
 		  $postdata,
 		  'post'
 	  );
