@@ -57,12 +57,16 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
 		$form = parent::buildConfigurationForm($form, $form_state);
 
-	    $form['method_type'] = [
-	      '#type' => 'textfield',
-	      '#title' => $this->t('Method Type'),
-	      '#default_value' => $this->configuration['method_type'],
-	      '#required' => TRUE,
-	    ];
+			$form['method_type'] = [
+		      '#title' => t('Payment Method'),
+		      '#type' => 'select',
+		      '#required' => TRUE,
+		      '#options' => array(
+						'credit_card_3d' => 'Credit Card with 3D Secure',
+						'webcvs' => 'Convenience Store',
+						'unionpay' => 'Unionpay',
+		      ),
+			];
 
 	    $form['merchant_id'] = [
 	      '#type' => 'textfield',
@@ -118,14 +122,21 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	*/
 	public function getOrderData(PaymentInterface $payment) {
 	  $languageCheck = \Drupal::service('payment_asp.languageCheck');
+	  $pc = \Drupal::service('payment_asp.PaymentASPController');
 		date_default_timezone_set('Japan');
-		
+
    	$order = $payment->getOrder();
-		$pc = new PaymentASPController;
 		$orderData = $pc->getOrderDetails($order);
 
 		$paymentGateway = $payment->getPaymentGateway()->id();
 
+		switch ($paymentGateway) {
+			case 'credit_card_3d':
+				break;
+			
+			case 'webcvs':
+				break;
+		}
 
 		$postdata = [
 		    'pay_method'		=> $this->configuration['method_type'],
