@@ -46,7 +46,7 @@ class PaymentASPController extends ControllerBase {
       } else {
         $taxPercentage = $taxEntity[0]->getPercentage()*100;
       }
-      $perItem['dtl_tax'] = (string)$taxPercentage.'%';
+      $perItem['dtl_tax'] = (string)$taxPercentage;
 
       array_push($orderDetail, $perItem);
       // $orderDetail['orderDetail'.$i] = $perItem;
@@ -55,9 +55,13 @@ class PaymentASPController extends ControllerBase {
     $data_needed = array(
       'order_id' => $order_id,
       'cust_code' => $order->getCustomer()->getDisplayName(),
-      'amount' => $order->getTotalPrice()->getNumber(),
+      'amount' => number_format((float)$order->getTotalPrice()->getNumber(), 0, '.', ''),
       'tax' => $perItem['dtl_tax'],
       'orderDetail' => $orderDetail,
+      // No value as for the moment
+      'dtl_free1' => '',
+      'dtl_free2' => '',
+      'dtl_free3' => '',
     );
 
     return $data_needed;
