@@ -22,11 +22,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides the payment process pane for Payment ASP.
  *
  * @CommerceCheckoutPane(
- *   id = "payment_asp_checkoutpane",
- *   label = @Translation("Payment ASP Checkoutpane"),
+ *   id = "payment_asp_payment_process",
+ *   label = @Translation("Payment Process - Payment ASP"),
+ *   default_step = "payment",
  * )
  */
-class PaymentASPCheckoutPane extends CheckoutPaneBase {
+class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
 
   /**
    * The inline form manager.
