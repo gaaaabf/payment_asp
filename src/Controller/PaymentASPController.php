@@ -11,8 +11,8 @@ class PaymentASPController extends ControllerBase {
   }
 
   public function getOrderIdByURI() {
-  	$current_uri = \Drupal::request()->getRequestUri();
-  	$current_uri = explode('/', $current_uri);
+    $current_uri = \Drupal::request()->getRequestUri();
+    $current_uri = explode('/', $current_uri);
     for ($i=0; $i != sizeof($current_uri) ; $i++) { 
      if (is_numeric($current_uri[$i])) {
        $order_id = $current_uri[$i];
@@ -22,9 +22,13 @@ class PaymentASPController extends ControllerBase {
     return $order_id; 
   }
 
-  public function getOrderDetails($order) {
-
-    $order_id = $order->id();
+  public function getOrderDetails($order = NULL) {
+    if (is_null($order)) {
+      $order_id = $this->getOrderIdByURI();
+      $order = \Drupal\commerce_order\Entity::load($order_id);
+    } else {  
+      $order_id = $order->id();
+    }
 
     $orderDetail = [];
     $perItem = [];
