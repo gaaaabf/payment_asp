@@ -112,7 +112,8 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	* Gets the order data from Controller
 	*/
 	public function getOrderData(PaymentInterface $payment) {
-   		$order = $payment->getOrder();
+		date_default_timezone_set('Japan');
+   	$order = $payment->getOrder();
 		$pc = new PaymentASPController;
 		$orderData = $pc->getOrderDetails($order);
 
@@ -146,7 +147,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 					'free3' => '0',
 	     //'free_csv' => 'LAST_NAME=鈴木,FIRST_NAME=太郎,LAST_NAME_KANA=スズキ,FIRST_NAME_KANA=タロウ,FIRST_ZIP=210,SECOND_ZIP=0001,ADD1=岐阜県,ADD2=あああ市あああ町,ADD3=,TEL=12345679801,MAIL=aaaa@bb.jp,ITEM_NAME=TEST ITEM",
 	     //order.request_date          = "20191011155055',
-	    'request_date' => date("Ymdhms"),
+	    'request_date' => date("Ymdhis"),
 	    'limit_second' => '600',
 	    'hashkey' => $this->configuration['hashkey'],
 	    // 'orderDetail'=> $orderData['orderDetail']
@@ -192,7 +193,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	    "cust_code"             => "Merchant_TestUser_999999",
 	    "sps_cust_no"           => "",
 	    "sps_payment_no"        => "",
-	    "order_id"              => "7863a3c85b9f1231605e79de51f579fd",
+	    "order_id"              => "7863a3c85b9f5331605e79de51fas9fd",
 	    "item_id"               => "T_0003",
 	    "pay_item_id"           => "",
 	    "item_name"             => "テスト商品",
@@ -224,21 +225,24 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	    'dtl_free1'       			=> "",
 	    'dtl_free2'       			=> "",
 	    'dtl_free3'       			=> "",
-	    "request_date"          => "20191030145809",
+	    'request_date' 					=> date("Ymdhis"),
 	    "limit_second"          => "",
 	    "hashkey"               => "644da9995cac43695d6b3fcbc89787872fbc8b5c",
 		];
 
+	  // $sps_hashcode = utf8_encode($test1);
 	  $test1 = mb_convert_encoding($test1, 'Shift_JIS', 'UTF-8');
-	  $test1 = base64_encode($test1);
+	  $test1['free_csv'] = base64_encode($test1['free_csv']);
+	  $test1['item_name'] = base64_encode($test1['item_name']);
+	  $test1['dtl_item_name'] = base64_encode($test1['dtl_item_name']);
+
 	  $sps_hashcode = (String) implode('', $test1);
-	  // $sps_hashcode = utf8_encode($sps_hashcode);
 	  // die(var_dump($sps_hashcode));
-
 	  $sps_hashcode = sha1($sps_hashcode);
-	  $test['sps_hashcode'] = $sps_hashcode;
+	  $test1['sps_hashcode'] = $sps_hashcode;
+	  // die(var_dump($test1));
 
-		return $test;
+		return $test1;
 	}
 
 }
