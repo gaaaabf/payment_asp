@@ -188,7 +188,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       '#type' => 'radios',
       '#title' => $this->t('Payment method'),
       '#options' => $option_labels,
-      '#default_value' => $default_option->getId(),
+      // '#default_value' => $default_option->getId(),
       '#ajax' => [
         'callback' => [get_class($this), 'ajaxRefresh'],
         'wrapper' => $pane_form['#id'],
@@ -297,10 +297,11 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
   public static function ajaxRefresh(array $form, FormStateInterface $form_state) {
     $parents = $form_state->getTriggeringElement()['#parents'];
     array_pop($parents);
-    
-    // Add Split Count select input on Credit Card Selection
-    if($form_state->getValue('payment_asp_payment_information')['payment_method'] == 'credit_card_3d') {
-      $form['payment_asp_payment_information']['payment_method']['offsite-payment']['payment_installment'] = [
+
+
+    // Add Split Count select input on Credit Card 3D Selection
+    if($form_state->getValue('payment_information')['payment_method'] == 'credit_card_3d') {
+      $form['payment_information']['payment_method']['offsite-payment']['payment_installment'] = [
           '#title' => t('Split Count'),
           '#type' => 'select',
           '#required' => TRUE,

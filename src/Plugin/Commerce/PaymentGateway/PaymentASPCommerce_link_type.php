@@ -26,18 +26,10 @@ use Drupal\commerce_payment\Entity\PaymentInterface;
  *   forms = {
  *     "offsite-payment" = "Drupal\payment_asp\PluginForm\PaymentASPCommerce_linktype_plugin_form",
  *   },
- *   payment_method_types = {"credit_card"},
- *   credit_card_types = {
- *     "amex", "discover", "mastercard", "visa",
- *   },
+ *   payment_type = "payment_default"
  * )
  */
 class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
-
-
-	public function __construct() {
-
-	}
 
 	/**
 	* {@inheritdoc}
@@ -58,50 +50,51 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 		$form = parent::buildConfigurationForm($form, $form_state);
 
 			$form['method_type'] = [
-		      '#title' => t('Payment Method'),
-		      '#type' => 'select',
-		      '#required' => TRUE,
-		      '#options' => array(
-						'credit_card_3d' => 'Credit Card with 3D Secure',
-						'webcvs' => 'Convenience Store',
-						'unionpay' => 'Unionpay',
-		      ),
+			  '#title' => t('Payment Method'),
+			  '#type' => 'select',
+			  '#required' => TRUE,
+			  '#description' => '<b>Name Field</b> above must be the same with the word inside the parenthesis ()',
+			  '#options' => array(
+						'credit_card_3d' => 'Credit Card with 3D Secure (credit_card_3d)',
+						'webcvs' => 'Convenience Store (webcvs)',
+						'unionpay' => 'Unionpay (unionpay)',
+			  ),
 			];
 
-	    $form['merchant_id'] = [
-	      '#type' => 'textfield',
-	      '#title' => $this->t('Merchant Id'),
-	      '#default_value' => $this->configuration['merchant_id'],
-	      '#required' => TRUE,
-	    ];
+		$form['merchant_id'] = [
+		  '#type' => 'textfield',
+		  '#title' => $this->t('Merchant Id'),
+		  '#default_value' => $this->configuration['merchant_id'],
+		  '#required' => TRUE,
+		];
 
-	    $form['hashkey'] = [
-	      '#type' => 'textfield',
-	      '#title' => $this->t('Hashkey'),
-	      '#default_value' => $this->configuration['hashkey'],
-	      '#required' => TRUE,
-	    ];
+		$form['hashkey'] = [
+		  '#type' => 'textfield',
+		  '#title' => $this->t('Hashkey'),
+		  '#default_value' => $this->configuration['hashkey'],
+		  '#required' => TRUE,
+		];
 
-	    $form['service_id'] = [
-	      '#type' => 'textfield',
-	      '#title' => $this->t('Service Id'),
-	      '#default_value' => $this->configuration['service_id'],
-	      '#required' => TRUE,
-	    ];
+		$form['service_id'] = [
+		  '#type' => 'textfield',
+		  '#title' => $this->t('Service Id'),
+		  '#default_value' => $this->configuration['service_id'],
+		  '#required' => TRUE,
+		];
 
-	    return $form;
+		return $form;
 	}
 
-  	/**
-   	* {@inheritdoc}
-   	*/
+	/**
+	* {@inheritdoc}
+	*/
 	public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
 		parent::submitConfigurationForm($form, $form_state);
-	    $values = $form_state->getValue($form['#parents']);
-	    $this->configuration['method_type'] = $values['method_type'];
-	    $this->configuration['merchant_id'] = $values['merchant_id'];
-	    $this->configuration['service_id'] = $values['service_id'];
-	    $this->configuration['hashkey'] = $values['hashkey'];
+		$values = $form_state->getValue($form['#parents']);
+		$this->configuration['method_type'] = $values['method_type'];
+		$this->configuration['merchant_id'] = $values['merchant_id'];
+		$this->configuration['service_id'] = $values['service_id'];
+		$this->configuration['hashkey'] = $values['hashkey'];
 
 	}
 
@@ -125,77 +118,81 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	  $pc = \Drupal::service('payment_asp.PaymentASPController');
 		date_default_timezone_set('Japan');
 
-   	$order = $payment->getOrder();
+		$order = $payment->getOrder();
 		$orderData = $pc->getOrderDetails($order);
 
 		$paymentGateway = $payment->getPaymentGateway()->id();
 
 		switch ($paymentGateway) {
 			case 'credit_card_3d':
+				// DEALINGS_TYPE
+				// DIVIDE_TIMES 
+				// ONE_TIME_CHARGE_CUSTOMER_REGIST
+				$postdata = [
+					'pay_method'		=> $this->configuration['method_type'],
+					'merchant_id'		=> $this->configuration['merchant_id'],
+					'service_id'		=> $this->configuration['service_id'],
+					"cust_code"			=> $orderData['cust_code'],
+					"sps_cust_no"		=> "",
+					"sps_payment_no"	=> "",
+					"order_id"			=> $orderData['order_id'],
+					"item_id"			=> $orderData['orderDetail'][0]["dtl_item_id"],
+					"pay_item_id"		=> "",
+					"item_name"			=> $orderData['orderDetail'][0]["dtl_item_name"],
+					"tax"				=> $orderData['tax'],
+					"amount"			=> $orderData['amount'],
+					"pay_type"			=> "0",
+					"auto_charge_type"	=> "",
+					"service_type"		=> "0",
+					"div_settele"		=> "",
+					"last_charge_month"	=> "",
+					"camp_type"			=> "",
+					"tracking_id"		=> "",
+					"terminal_type"		=> "0",
+					"success_url"		=> "http://stbfep.sps-system.com/MerchantPaySuccess.jsp",
+					"cancel_url"		=> "http://stbfep.sps-system.com/MerchantPayCancel.jsp",
+					"error_url"			=> "http://stbfep.sps-system.com/MerchantPayError.jsp",
+					"pagecon_url"		=> "http://stbfep.sps-system.com/MerchantPayResultRecieveSuccess.jsp",
+					"free1"				=> "",
+					"free2"				=> "",
+					"free3"				=> "",
+					"free_csv"			=> "LAST_NAME=鈴木,FIRST_NAME=太郎,LAST_NAME_KANA=スズキ,FIRST_NAME_KANA=タロウ,FIRST_ZIP=210,SECOND_ZIP=0001,ADD1=岐阜県,ADD2=あああ市あああ町,ADD3=,TEL=12345679801,MAIL=aaaa@bb.jp,ITEM_NAME=TEST ITEM",
+					'dtl_rowno'			=> $orderData['orderDetail'][0]["dtl_rowno"],
+					'dtl_item_id'		=> $orderData['orderDetail'][0]["dtl_item_id"],
+					'dtl_item_name'		=> $orderData['orderDetail'][0]["dtl_item_name"],
+					'dtl_item_count'	=> $orderData['orderDetail'][0]["dtl_item_count"],
+					'dtl_tax'			=> $orderData['orderDetail'][0]["dtl_tax"],
+					'dtl_amount'		=> $orderData['orderDetail'][0]["dtl_amount"],
+					'dtl_free1'			=> $orderData['orderDetail'][0]["dtl_free1"],
+					'dtl_free2'			=> $orderData['orderDetail'][0]["dtl_free2"],
+					'dtl_free3'			=> $orderData['orderDetail'][0]["dtl_free3"],
+					'request_date'		=> date("Ymdhis"),
+					"limit_second"		=> "",
+					"hashkey"			=> $this->configuration['hashkey'],
+				];
+
 				break;
 			
 			case 'webcvs':
 				break;
 		}
 
-		$postdata = [
-		    'pay_method'		=> $this->configuration['method_type'],
-		    'merchant_id'		=> $this->configuration['merchant_id'],
-		    'service_id'		=> $this->configuration['service_id'],
-		    "cust_code"			=> $orderData['cust_code'],
-		    "sps_cust_no"		=> "",
-		    "sps_payment_no"	=> "",
-		    "order_id"			=> $orderData['order_id'],
-		    "item_id"			=> $orderData['orderDetail'][0]["dtl_item_id"],
-		    "pay_item_id"		=> "",
-		    "item_name"			=> $orderData['orderDetail'][0]["dtl_item_name"],
-		    "tax"				=> $orderData['tax'],
-		    "amount"			=> $orderData['amount'],
-		    "pay_type"			=> "0",
-		    "auto_charge_type"	=> "",
-		    "service_type"		=> "0",
-		    "div_settele"		=> "",
-		    "last_charge_month"	=> "",
-		    "camp_type"			=> "",
-		    "tracking_id"		=> "",
-		    "terminal_type"		=> "0",
-		    "success_url"		=> "http://stbfep.sps-system.com/MerchantPaySuccess.jsp",
-		    "cancel_url"		=> "http://stbfep.sps-system.com/MerchantPayCancel.jsp",
-		    "error_url"			=> "http://stbfep.sps-system.com/MerchantPayError.jsp",
-		    "pagecon_url"		=> "http://stbfep.sps-system.com/MerchantPayResultRecieveSuccess.jsp",
-		    "free1"				=> "",
-		    "free2"				=> "",
-		    "free3"				=> "",
-		    // "free_csv"			=> "LAST_NAME=鈴木,FIRST_NAME=太郎,LAST_NAME_KANA=スズキ,FIRST_NAME_KANA=タロウ,FIRST_ZIP=210,SECOND_ZIP=0001,ADD1=岐阜県,ADD2=あああ市あああ町,ADD3=,TEL=12345679801,MAIL=aaaa@bb.jp,ITEM_NAME=TEST ITEM",
-		    'dtl_rowno'			=> $orderData['orderDetail'][0]["dtl_rowno"],
-		    'dtl_item_id'		=> $orderData['orderDetail'][0]["dtl_item_id"],
-		    'dtl_item_name'		=> $orderData['orderDetail'][0]["dtl_item_name"],
-		    'dtl_item_count'	=> $orderData['orderDetail'][0]["dtl_item_count"],
-		    'dtl_tax'			=> $orderData['orderDetail'][0]["dtl_tax"],
-		    'dtl_amount'		=> $orderData['orderDetail'][0]["dtl_amount"],
-		    'dtl_free1'			=> $orderData['orderDetail'][0]["dtl_free1"],
-		    'dtl_free2'			=> $orderData['orderDetail'][0]["dtl_free2"],
-		    'dtl_free3'			=> $orderData['orderDetail'][0]["dtl_free3"],
-		    'request_date'		=> date("Ymdhis"),
-		    "limit_second"		=> "",
-		    "hashkey"			=> $this->configuration['hashkey'],
-		];
 
 	  // Check each parameter if Japanese/Chinese character
 	  foreach ($postdata as $key => $value) {
 			if ($languageCheck->isJapanese($postdata[$key])) {
-			 	$postdata[$key] = base64_encode($postdata[$key]);
+				$postdata[$key] = base64_encode($postdata[$key]);
 			}
 	  }
 
-	  // Convert to UTF-8
-	  $postdata = mb_convert_encoding($postdata, 'Shift_JIS', 'UTF-8');
-	  // Concatenate each value
-	  $sps_hashcode = (String) implode('', $postdata);
-	  // Hashkey generation using sha1
-	  $sps_hashcode = sha1($sps_hashcode);
-	  // Adding hashkey to parameters to be passed
-	  $postdata['sps_hashcode'] = $sps_hashcode;
+		// Convert to UTF-8
+		$postdata = mb_convert_encoding($postdata, 'Shift_JIS', 'UTF-8');
+		// Concatenate each value
+		$sps_hashcode = (String) implode('', $postdata);
+		// Hashkey generation using sha1
+		$sps_hashcode = sha1($sps_hashcode);
+		// Adding hashkey to parameters to be passed
+		$postdata['sps_hashcode'] = $sps_hashcode;
 
 		return $postdata;
 	}

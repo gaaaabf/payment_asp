@@ -5,6 +5,15 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\payment_asp\Controller\PaymentASPController;
 use Drupal\commerce_payment\PaymentOption;
 
+
+
+/**
+* Implements hook_commerce_checkout_pane_info_alter(array &$panes).
+*/
+function payment_asp_commerce_checkout_pane_info_alter(array &$panes) {
+	$panes['payment_information']['class'] = 'Drupal\payment_asp\Plugin\Commerce\CheckoutPane\PaymentASPCheckoutPane_payment_information';
+}
+
 /**
 * Implements hook_form_alter(&$form, FormStateInterface $form_state, $form_id).
 */
@@ -19,28 +28,6 @@ function payment_asp_form_alter(&$form, FormStateInterface $form_state, $form_id
 				$value->delete();
 			}
 		}
-		// ksm($form_state->getValue('payment_information')['payment_method']);
-
-		// Add Split Count select input on Credit Card Selection
-		// if($form_state->getValue('payment_information')['payment_method'] == 'credit_card_3d') {
-		// 	$form['payment_information']['payment_method']['offsite-payment']['payment_installment'] = [
-		//       '#title' => t('Split Count'),
-		//       '#type' => 'select',
-		//       '#required' => TRUE,
-		//       '#default_value' => 'One-time payment', 
-		//       '#options' => array(
-		//       	'One-time payment' => 'One-time payment',
-		//       	'2' => '2',
-		//       	'3' => '3',
-		//       	'5' => '5',
-		//       	'6' => '6',
-		//       ),
-		// 	];
-		// } else {
-		// 	// unset($form['payment_information']['payment_method']['add_payment_method']['payment_installment']);
-		// }
-
-
 	}
 
 	// Commerce Checkout step "Review"
