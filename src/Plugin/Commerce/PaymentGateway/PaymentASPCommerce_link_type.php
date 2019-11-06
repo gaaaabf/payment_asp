@@ -119,8 +119,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* {@inheritdoc}
 	*/
 	public function onNotify(Request $request) {
-		\Drupal::logger('payment_asp')->notice($request);
-		// return 'SUCCESSSS';
+		\Drupal::logger('payment_asp')->notice(ksm($request));
 	}
 
 	/**
@@ -193,7 +192,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 
 		// Check each parameter if Japanese/Chinese character
 		foreach ($postdata as $key => $value) {
-			if ($languageCheck->isJapanese($postdata[$key] || $key == 'free_csv')) {
+			if ($languageCheck->isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
 				$postdata[$key] = base64_encode($postdata[$key]);
 			}
 		}
