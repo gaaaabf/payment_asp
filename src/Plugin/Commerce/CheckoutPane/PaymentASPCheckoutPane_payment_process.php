@@ -180,31 +180,46 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
     $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
 
     if ($payment_gateway_plugin instanceof OnsitePaymentGatewayInterface) {
-      $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
-      $result = $payment_gateway_plugin->createPayment($payment);
-
-      if($result == 'NG') {
-        $this->redirectToCart();
-      } elseif($result == 'OK') {
-        // Create payment to save to database
-        $payment->setState('Completed');
-        // $payment->setRemoteId($response->transaction->id);
-        $payment->save();
-
-        $field_arr = [
-          'p_fk_id' => $payment->id(),
-          'tracking_id' => (string) $xml->res_tracking_id,
-          'sps_transaction_id' => (string) $xml->res_sps_transaction_id,
-          'processing_datetime' => (string) $xml->res_process_date,
-        ];
-        // Save to database
-        $query = \Drupal::database();
-        $query->insert('payment_asp_pd')
-              ->fields($field_arr)
-              ->execute();
-        $order_id = $this->order->id();
-        unset($_SESSION["cc_data_".$order_id]);
+    // Custom Response handling for API/Onsite payment gateways
+    //  $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
+    //  $result = $payment_gateway_plugin->createPayment($payment);
+   
+    //  if($result == 'NG') {
+    //    $this->redirectToCart();
+    //  } elseif($result == 'OK') {
+    //    // Create payment to save to database
+    //    $payment->setState('Completed');
+    //    // $payment->setRemoteId($response->transaction->id);
+    //    $payment->save();
+ 
+    //    $field_arr = [
+    //      'p_fk_id' => $payment->id(),
+    //      'tracking_id' => (string) $xml->res_tracking_id,
+    //      'sps_transaction_id' => (string) $xml->res_sps_transaction_id,
+    //      'processing_datetime' => (string) $xml->res_process_date,
+    //    ];
+    //    // Save to database
+    //    $query = \Drupal::database();
+    //    $query->insert('payment_asp_pd')
+    //          ->fields($field_arr)
+    //          ->execute();
+    //    $order_id = $this->order->id();
+    //    unset($_SESSION["cc_data_".$order_id]);
+      try {
+        $payment->payment_method = $this->order->payment_method->entity;
+        $payment_gateway_plugin->createPayment($payment, $this->configuration['capture']);
         $this->checkoutFlow->redirectToStep($next_step_id);
+      }
+      catch (DeclineException $e) {
+        $message = $this->t('We encountered an error processing your payment method. Please verify your details and try again.');
+        $this->messenger()->addError($message);
+        $this->checkoutFlow->redirectToStep($error_step_id);
+      }
+      catch (PaymentGatewayException $e) {
+        $this->logger->error($e->getMessage());
+        $message = $this->t('We encountered an unexpected error processing your payment method. Please try again later.');
+        $this->messenger()->addError($message);
+        $this->checkoutFlow->redirectToStep($error_step_id);
       }
     }
     elseif ($payment_gateway_plugin instanceof OffsitePaymentGatewayInterface) {
@@ -306,6 +321,7 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
 
   /**
    * Redirect to cart in case of a PaymentGatewayException exception.
+   * UNUSED FOR NOW
    */
   protected function redirectToCart() {
     drupal_set_message('Payment has not gone through. Please check you credit card detials', 'error');
@@ -315,5 +331,6 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
     $this->order->save();
     throw new NeedsRedirectException(Url::fromRoute('commerce_cart.page')->toString());
   }
+
 
 }

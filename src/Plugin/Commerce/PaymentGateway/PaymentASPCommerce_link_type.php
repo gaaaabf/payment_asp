@@ -11,8 +11,10 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\payment_asp\Controller\PaymentASPController;
 use Drupal\commerce_payment\Entity\PaymentInterface;
-// use ForceUTF8;
-// require('Encoding.php');
+
+use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\Serializer\Serializer;
+use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsNotificationsInterface;
 
 
 
@@ -29,7 +31,7 @@ use Drupal\commerce_payment\Entity\PaymentInterface;
  *   payment_type = "payment_default"
  * )
  */
-class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
+class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements SupportsNotificationsInterface{
 
 	/**
 	* {@inheritdoc}
@@ -55,7 +57,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 			  '#required' => TRUE,
 			  '#description' => '<b>Name Field</b> above must be the same with the word inside the parenthesis ()',
 			  '#options' => array(
-						'credit_card_3d' => 'Credit Card with 3D Secure (credit_card_3d)',
+						'credit3d' => 'Credit Card with 3D Secure (credit3d)',
 						'webcvs' => 'Convenience Store (webcvs)',
 						'unionpay' => 'Unionpay (unionpay)',
 			  ),
@@ -101,13 +103,24 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	/**
 	* {@inheritdoc}
 	*/
-	public function onReturn(OrderInterface $order, Request $request) {}
+	public function onCancel(OrderInterface $order, Request $request) {
+		ksm($request);
+	}
+
+	/**
+	* {@inheritdoc}
+	*/
+	public function onReturn(OrderInterface $order, Request $request) {
+		die('kaning');
+		ksm($request);
+	}
 
 	/**
 	* {@inheritdoc}
 	*/
 	public function onNotify(Request $request) {
-		// ksm($request);
+		\Drupal::logger('payment_asp')->notice($request);
+		// return 'SUCCESSSS';
 	}
 
 	/**
@@ -116,6 +129,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 	public function getOrderData(PaymentInterface $payment) {
 	  $languageCheck = \Drupal::service('payment_asp.languageCheck');
 	  $pc = \Drupal::service('payment_asp.PaymentASPController');
+		$current_uri = \Drupal::request()->getRequestUri();
 		date_default_timezone_set('Japan');
 
 		$order = $payment->getOrder();
@@ -149,10 +163,10 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 					"camp_type"			=> "",
 					"tracking_id"		=> "",
 					"terminal_type"		=> "0",
-					"success_url"		=> "http://stbfep.sps-system.com/MerchantPaySuccess.jsp",
-					"cancel_url"		=> "http://stbfep.sps-system.com/MerchantPayCancel.jsp",
-					"error_url"			=> "http://stbfep.sps-system.com/MerchantPayError.jsp",
-					"pagecon_url"		=> "http://stbfep.sps-system.com/MerchantPayResultRecieveSuccess.jsp",
+					"success_url"		=> $this->getNotifyUrl()->toString(),
+					"cancel_url"		=> "",
+					"error_url"			=> "",
+					"pagecon_url"		=> $this->getNotifyUrl()->toString(),
 					"free1"				=> "",
 					"free2"				=> "",
 					"free3"				=> "",
@@ -166,7 +180,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 					'dtl_free1'			=> $orderData['orderDetail'][0]["dtl_free1"],
 					'dtl_free2'			=> $orderData['orderDetail'][0]["dtl_free2"],
 					'dtl_free3'			=> $orderData['orderDetail'][0]["dtl_free3"],
-					'request_date'		=> date("Ymdhis"),
+					'request_date'		=> date("YmdGis"),
 					"limit_second"		=> "",
 					"hashkey"			=> $this->configuration['hashkey'],
 				];
@@ -177,23 +191,13 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase {
 				break;
 		}
 
-
-	  // Check each parameter if Japanese/Chinese character
-	  foreach ($postdata as $key => $value) {
-			if ($languageCheck->isJapanese($postdata[$key])) {
+		// Check each parameter if Japanese/Chinese character
+		foreach ($postdata as $key => $value) {
+			if ($languageCheck->isJapanese($postdata[$key] || $key == 'free_csv')) {
 				$postdata[$key] = base64_encode($postdata[$key]);
 			}
-	  }
-
-		// Convert to UTF-8
-		$postdata = mb_convert_encoding($postdata, 'Shift_JIS', 'UTF-8');
-		// Concatenate each value
-		$sps_hashcode = (String) implode('', $postdata);
-		// Hashkey generation using sha1
-		$sps_hashcode = sha1($sps_hashcode);
-		// Adding hashkey to parameters to be passed
-		$postdata['sps_hashcode'] = $sps_hashcode;
-
+		}
+		
 		return $postdata;
 	}
 
