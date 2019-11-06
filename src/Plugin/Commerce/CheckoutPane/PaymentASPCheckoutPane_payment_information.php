@@ -15,6 +15,15 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\ChangedCommand;
+use Drupal\Core\Ajax\CssCommand;
+use Drupal\Core\Ajax\AlertCommand;
+use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Ajax\InvokeCommand;
+use Drupal\Core\Ajax\DataCommand;
+
+use Drupal\Core\Entity\EntityTypeManager;
 /**
  * Provides the payment information pane.
  *
@@ -52,6 +61,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    * @var \Drupal\commerce_payment\PaymentOptionsBuilderInterface
    */
   protected $paymentOptionsBuilder;
+  
+  private $data;
 
   /**
    * Constructs a new PaymentInformation object.
@@ -140,10 +151,17 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     return $summary;
   }
 
+
+
+
+
+
   /**
    * {@inheritdoc}
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form) {
+    //$this->paymentOptionsBuilder->useCaches($use_caches = TRUE);
+
     if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
       // No payment is needed if the order is free or has already been paid.
       // In that case, collect just the billing information.
@@ -171,30 +189,39 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       }
     }
 
+  // --------------------------------------------CREATE DEFAULT RADIO OPTION------------------------------  
+
     $options = $this->paymentOptionsBuilder->buildOptions($this->order, $payment_gateways);
+
     $option_labels = array_map(function (PaymentOption $option) {
       return $option->getLabel();
     }, $options);
+
     $parents = array_merge($pane_form['#parents'], ['payment_method']);
     $default_option_id = NestedArray::getValue($form_state->getUserInput(), $parents);
-    if ($default_option_id && isset($options[$default_option_id])) {
-      $default_option = $options[$default_option_id];
+    
+    if ($default_option_id && isset($options[$default_option_id])) {   // Default::Convenience store  $id=NULL 
+      $default_option = $options[$default_option_id]; 
     }
     else {
       $default_option = $this->paymentOptionsBuilder->selectDefaultOption($this->order, $options);
     }
+   
+// -----------------------------------------------------------------------------------------------------------//
 
     $pane_form['payment_method'] = [
       '#type' => 'radios',
       '#title' => $this->t('Payment method'),
       '#options' => $option_labels,
-      // '#default_value' => $default_option->getId(),
+      '#default_value' => $default_option->getId(),
       '#ajax' => [
-        'callback' => [get_class($this), 'ajaxRefresh'],
-        'wrapper' => $pane_form['#id'],
+       'callback' => [get_class($this), 'ajaxRefresh'],
+       'wrapper' => $pane_form['#id'],
+       'data' => 'data',
       ],
       '#access' => count($options) > 1,
     ];
+   
     // Add a class to each individual radio, to help themers.
     foreach ($options as $option) {
       $class_name = $option->getPaymentMethodId() ? 'stored' : 'new';
@@ -202,20 +229,84 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     }
     // Store the options for submitPaneForm().
     $pane_form['#payment_options'] = $options;
-
+   
     $default_payment_gateway_id = $default_option->getPaymentGatewayId();
     $payment_gateway = $payment_gateways[$default_payment_gateway_id];
+
+//---------------------------------IF STATEMENT  FOR LINK TYPE -----------------------------------------------   
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
       $pane_form = $this->buildPaymentMethodForm($pane_form, $form_state, $default_option);
     }
-    elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
-      $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
-    }
 
+//------------------------------------------ELSEIF FOR LINK TYPE ----------------------------------------------
+    elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
+      //$pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
+      if($default_option->getId() == 'offsite'){
+        $pane_form['fieldset'] = [
+             '#title' => t($default_option->getId()),
+             '#type' => 'textfield',
+             '#default_value' => '',
+        ];
+      }
+      elseif ($default_option->getId() == 'credit_3d') {
+        $pane_form['fieldset'] = [
+             '#title' => t('Payment Schedule'),
+              '#type' => 'select',
+                          '#required' => TRUE,
+                          //'#default_value' => 'schedule_1', 
+                          '#options' => array(
+                                 'schedule_1' => 'One-time payment',
+                                 'schedule_2' => '2',
+                                 'schedule_3' => '3',
+                                 'schedule_4' => '5',
+                                 'schedule_5' => '6',
+                          ),
+        ];
+      }
+      elseif ($default_option->getId() == 'convenience_store') {
+        $pane_form['fieldset'] = [
+             '#title' => t('Telphone'),
+             '#type' => 'textfield',
+             '#default_value' => '',
+             '#maxlength' => '12',
+             '#size' => '20',
+             '#required' => TRUE,
+        ];
+      }
+        
+    }
+//ksm($pane_form);  
+//ksm($default_option->getId());  
     return $pane_form;
-  }
+
+}   // -------------- END OF buildPaneForm()
+
+
+
+
+
+
 
   /**
+   * Ajax callback.
+   */
+  public static function ajaxRefresh(array $form, FormStateInterface $form_state) {
+    $parents = $form_state->getTriggeringElement()['#parents'];
+    array_pop($parents);
+    return NestedArray::getValue($form, $parents);
+  }
+
+ /**
+   * Ajax callback.
+   */
+  public function getTextfieldvalue(array &$form, FormStateInterface $form_state) {
+      $ajax_response = new AjaxResponse();
+      $ajax_response->addCommand(new AlertCommand('it works'));
+      
+      return $ajax_response;
+  }
+
+    /**
    * Builds the payment method form for the selected payment option.
    *
    * @param array $pane_form
@@ -228,9 +319,10 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    * @return array
    *   The modified pane form.
    */
-  protected function buildPaymentMethodForm(array $pane_form, FormStateInterface $form_state, PaymentOption $payment_option) {
+ protected function buildPaymentMethodForm(array $pane_form, FormStateInterface $form_state, PaymentOption $payment_option) {
+   
     if ($payment_option->getPaymentMethodId() && !$payment_option->getPaymentMethodTypeId()) {
-      // Editing payment methods at checkout is not supported.
+      
       return $pane_form;
     }
 
@@ -245,15 +337,15 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     $inline_form = $this->inlineFormManager->createInstance('payment_gateway_form', [
       'operation' => 'add-payment-method',
     ], $payment_method);
-
     $pane_form['add_payment_method'] = [
       '#parents' => array_merge($pane_form['#parents'], ['add_payment_method']),
       '#inline_form' => $inline_form,
     ];
     $pane_form['add_payment_method'] = $inline_form->buildInlineForm($pane_form['add_payment_method'], $form_state);
-
     return $pane_form;
   }
+
+// ------------------------------------ END LINE FOR API TYPE ------------------------------------------------------------------//
 
   /**
    * Builds the billing profile form.
@@ -287,37 +379,11 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       '#inline_form' => $inline_form,
     ];
     $pane_form['billing_information'] = $inline_form->buildInlineForm($pane_form['billing_information'], $form_state);
-
+   
     return $pane_form;
   }
 
-  /**
-   * Ajax callback.
-   */
-  public static function ajaxRefresh(array $form, FormStateInterface $form_state) {
-    $parents = $form_state->getTriggeringElement()['#parents'];
-    array_pop($parents);
 
-
-    // Add Split Count select input on Credit Card 3D Selection
-    if($form_state->getValue('payment_information')['payment_method'] == 'credit_card_3d') {
-      $form['payment_information']['payment_method']['offsite-payment']['payment_installment'] = [
-          '#title' => t('Split Count'),
-          '#type' => 'select',
-          '#required' => TRUE,
-          '#default_value' => 'One-time payment', 
-          '#options' => array(
-            'One-time payment' => 'One-time payment',
-            '2' => '2',
-            '3' => '3',
-            '5' => '5',
-            '6' => '6',
-          ),
-      ];
-    }
-    
-    return NestedArray::getValue($form, $parents);
-  }
 
   /**
    * {@inheritdoc}
@@ -326,17 +392,20 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
       return;
     }
-
+   
     $values = $form_state->getValue($pane_form['#parents']);
     if (!isset($values['payment_method'])) {
       $form_state->setError($complete_form, $this->noPaymentGatewayErrorMessage());
     }
+    
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
+   
+
     if (isset($pane_form['billing_information'])) {
       /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
       $inline_form = $pane_form['billing_information']['#inline_form'];
@@ -350,6 +419,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       }
     }
 
+//------------------------------------ CONFIGURE $payment_gateway-------------------------------------
     $values = $form_state->getValue($pane_form['#parents']);
     /** @var \Drupal\commerce_payment\PaymentOption $selected_option */
     $selected_option = $pane_form['#payment_options'][$values['payment_method']];
@@ -357,11 +427,15 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     $payment_gateway_storage = $this->entityTypeManager->getStorage('commerce_payment_gateway');
     /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface $payment_gateway */
     $payment_gateway = $payment_gateway_storage->load($selected_option->getPaymentGatewayId());
+
     if (!$payment_gateway) {
       return;
     }
+//-------------------------------------------------------------------------
+
 
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
+      
       if (!empty($selected_option->getPaymentMethodTypeId())) {
         /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
         $inline_form = $pane_form['add_payment_method']['#inline_form'];
@@ -379,6 +453,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $this->order->set('payment_method', $payment_method);
       // Copy the billing information to the order.
       $payment_method_profile = $payment_method->getBillingProfile();
+
+//----------------------------------   ------------------------------------------------
       if ($payment_method_profile) {
         $billing_profile = $this->order->getBillingProfile();
         if (!$billing_profile) {
@@ -396,11 +472,19 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         $billing_profile->save();
         $this->order->setBillingProfile($billing_profile);
       }
+
     }
     else {
+
       $this->order->set('payment_gateway', $payment_gateway);
+      $this->order->setData('payment_gateway_parameter', $pane_form['fieldset']['#value']);  
       $this->order->set('payment_method', NULL);
-    }
+
+/*ksm($pane_form['fieldset']['#value']);
+ksm($payment_gateway);
+ksm($this->order);
+*/    }
+
   }
 
   /**

@@ -6,13 +6,13 @@ use Drupal\payment_asp\Controller\PaymentASPController;
 use Drupal\commerce_payment\PaymentOption;
 
 
-
 /**
 * Implements hook_commerce_checkout_pane_info_alter(array &$panes).
 */
 function payment_asp_commerce_checkout_pane_info_alter(array &$panes) {
 	$panes['payment_information']['class'] = 'Drupal\payment_asp\Plugin\Commerce\CheckoutPane\PaymentASPCheckoutPane_payment_information';
 }
+
 
 /**
 * Implements hook_form_alter(&$form, FormStateInterface $form_state, $form_id).
@@ -61,3 +61,4 @@ function payment_asp_form_alter(&$form, FormStateInterface $form_state, $form_id
 function payment_asp_form_submit(array $form, FormStateInterface $form_state) {
 	drupal_set_message('mao ray nahitabo', 'error');
 }
+

@@ -23,6 +23,7 @@ class PaymentASPController extends ControllerBase {
   }
 
   public function getOrderDetails($order = NULL) {
+   
     if (is_null($order)) {
       $order_id = $this->getOrderIdByURI();
       $order = \Drupal\commerce_order\Entity::load($order_id);
@@ -62,6 +63,10 @@ class PaymentASPController extends ControllerBase {
       'dtl_free1' => '',
       'dtl_free2' => '',
       'dtl_free3' => '',
+      'free_csv_lastname' => 'sediego',
+      'free_csv_firstname' => 'renierjohn',
+      'free_csv_email' => 'renierjohnsediego@gmail.com',
+      'free_csv_telephone' => '0926262626',
     );
 
     return $data_needed;
