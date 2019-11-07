@@ -223,6 +223,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
           '#title' => t('Split Count'),
           '#type' => 'select',
           '#default_value' => '1',
+          '#weight' => 0,
           '#required' => TRUE,
             '#options' => array(
               '1' => 'One-time payment',
@@ -235,12 +236,13 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       }
       elseif ($default_option->getId() == 'webcvs') {
         $pane_form['fieldset'] = [
-         '#title' => t('Telphone'),
-         '#type' => 'textfield',
-         '#default_value' => ' ',
-         '#maxlength' => '12',
-         '#size' => '20',
-         '#required' => TRUE,
+          '#title' => t('Telphone'),
+          '#type' => 'textfield',
+          '#default_value' => ' ',
+          '#weight' => 0,
+          '#maxlength' => '12',
+          '#size' => '20',
+          '#required' => TRUE,
         ];
       }
     }
