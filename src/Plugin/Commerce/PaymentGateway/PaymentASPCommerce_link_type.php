@@ -161,13 +161,14 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		$order = $payment->getOrder();
 		// Common order data parameters
 		$orderData = $pc->getOrderDetails($order);
-
+    $givenName = $order->getData("billing_profile_givenName");
+    $familyName = $order->getData("billing_profile_familyName");
 		$payment_gateway_parameter = $order->getData("payment_gateway_parameter");
 		// $paymentGateway = $payment->getPaymentGateway()->id();
 
 		switch ($this->configuration['method_type']) {
 			case 'webcvs':
-				$free_csv = "LAST_NAME=" . $orderData['free_csv_lastname'] . ",FIRST_NAME=" . $orderData['free_csv_firstname'] . ",MAIL=" . $orderData['free_csv_email'] . ",TEL=" . $payment_gateway_parameter;		
+				$free_csv = "LAST_NAME=" . $familyName . ",FIRST_NAME=" . $givenName . ",MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter;		
 				break;
 			case 'credit3d':
 				$payment_gateway_parameter  = (int) $order->getData("payment_gateway_parameter");
@@ -180,7 +181,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 				}
 				break;
 		}
-
+    
 		$postdata = [
 			'pay_method'		=> $this->configuration['method_type'],
 			'merchant_id'		=> $this->configuration['merchant_id'],

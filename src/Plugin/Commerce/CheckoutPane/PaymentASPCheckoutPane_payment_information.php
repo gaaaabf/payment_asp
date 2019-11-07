@@ -15,6 +15,8 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+use Drupal\payment_asp\Plugin\Commerce\PaymentGateway\PaymentASPCommerce_link_type;
+
 /**
  * Provides the payment information pane.
  *
@@ -144,6 +146,9 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form) {
+
+//ksm(Drupal\payment_asp\Plugin\Commerce\PaymentGateway\PaymentASPCommerce_link_type);
+
     if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
       // No payment is needed if the order is free or has already been paid.
       // In that case, collect just the billing information.
@@ -205,11 +210,12 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
 
     $default_payment_gateway_id = $default_option->getPaymentGatewayId();
     $payment_gateway = $payment_gateways[$default_payment_gateway_id];
+//ksm($payment_gateway->getPlugin());
+    
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
       $pane_form = $this->buildPaymentMethodForm($pane_form, $form_state, $default_option);
     }
     elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
-      $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
       
       if ($default_option->getId() == 'offsite') {
         $pane_form['fieldset'] = [
@@ -246,7 +252,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         ];
       }
     }
-
     return $pane_form;
   }
 
@@ -322,7 +327,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       '#inline_form' => $inline_form,
     ];
     $pane_form['billing_information'] = $inline_form->buildInlineForm($pane_form['billing_information'], $form_state);
-
     return $pane_form;
   }
 
@@ -353,6 +357,11 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
+
+    $value_address  =  $this->order->getBillingProfile()->get('address');
+    $givenName   =  $value_address->first()->getGivenName();
+    $familyName  =  $value_address->first()->getFamilyName();
+    
     if (isset($pane_form['billing_information'])) {
       /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
       $inline_form = $pane_form['billing_information']['#inline_form'];
@@ -395,6 +404,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $this->order->set('payment_method', $payment_method);
       /** ADDED BY RENDROID  */
       $this->order->setData('payment_gateway_parameter', $pane_form['fieldset']['#value']); 
+      $this->order->setData('billing_profile_givenName',$givenName);
+      $this->order->setData('billing_profile_familyName',$familyName);
       // Copy the billing information to the order.
       $payment_method_profile = $payment_method->getBillingProfile();
       if ($payment_method_profile) {
@@ -420,8 +431,10 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $this->order->set('payment_method', NULL);
       /** ADDED BY RENDROID  */
       $this->order->setData('payment_gateway_parameter', $pane_form['fieldset']['#value']); 
+      $this->order->setData('billing_profile_givenName',$givenName);
+      $this->order->setData('billing_profile_familyName',$familyName);
+       
     }
-     ksm($this->order); 
   }
 
   /**
