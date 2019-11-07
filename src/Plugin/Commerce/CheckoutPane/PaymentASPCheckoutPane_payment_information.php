@@ -210,6 +210,39 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     }
     elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
       $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
+      
+      if($default_option->getId() == 'offsite'){
+        $pane_form['fieldset'] = [
+             '#title' => t($default_option->getId()),
+             '#type' => 'textfield',
+             '#default_value' => '',
+        ];
+      }
+      elseif ($default_option->getId() == 'credit_3d') {
+        $pane_form['fieldset'] = [
+             '#title' => t('Payment Schedule'),
+              '#type' => 'select',
+                          '#required' => TRUE,
+                          //'#default_value' => 'schedule_1', 
+                          '#options' => array(
+                                 'installment_1' => 'One-time payment',
+                                 'installment_2' => '2',
+                                 'installment_3' => '3',
+                                 'installment_4' => '5',
+                                 'installment_5' => '6',
+                          ),
+        ];
+      }
+      elseif ($default_option->getId() == 'convenience_store') {
+        $pane_form['fieldset'] = [
+             '#title' => t('Telphone'),
+             '#type' => 'textfield',
+             '#default_value' => ' ',
+             '#maxlength' => '12',
+             '#size' => '20',
+             '#required' => TRUE,
+        ];
+      }
     }
 
     return $pane_form;
@@ -297,25 +330,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
   public static function ajaxRefresh(array $form, FormStateInterface $form_state) {
     $parents = $form_state->getTriggeringElement()['#parents'];
     array_pop($parents);
-
-
-    // Add Split Count select input on Credit Card 3D Selection
-    if($form_state->getValue('payment_information')['payment_method'] == 'credit_card_3d') {
-      $form['payment_information']['payment_method']['offsite-payment']['payment_installment'] = [
-          '#title' => t('Split Count'),
-          '#type' => 'select',
-          '#required' => TRUE,
-          '#default_value' => 'One-time payment', 
-          '#options' => array(
-            'One-time payment' => 'One-time payment',
-            '2' => '2',
-            '3' => '3',
-            '5' => '5',
-            '6' => '6',
-          ),
-      ];
-    }
-    
     return NestedArray::getValue($form, $parents);
   }
 
@@ -377,6 +391,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       /** @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method */
       $this->order->set('payment_gateway', $payment_method->getPaymentGateway());
       $this->order->set('payment_method', $payment_method);
+      /** ADDED BY RENDROID  */
+      $this->order->setData('payment_gateway_parameter', $pane_form['fieldset']['#value']); 
       // Copy the billing information to the order.
       $payment_method_profile = $payment_method->getBillingProfile();
       if ($payment_method_profile) {
@@ -400,7 +416,10 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     else {
       $this->order->set('payment_gateway', $payment_gateway);
       $this->order->set('payment_method', NULL);
+      /** ADDED BY RENDROID  */
+      $this->order->setData('payment_gateway_parameter', $pane_form['fieldset']['#value']); 
     }
+     ksm($this->order); 
   }
 
   /**
