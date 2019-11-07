@@ -188,7 +188,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       '#type' => 'radios',
       '#title' => $this->t('Payment method'),
       '#options' => $option_labels,
-      // '#default_value' => $default_option->getId(),
+      '#default_value' => $default_option->getId(),
       '#ajax' => [
         'callback' => [get_class($this), 'ajaxRefresh'],
         'wrapper' => $pane_form['#id'],
@@ -222,6 +222,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         $pane_form['fieldset'] = [
           '#title' => t('Split Count'),
           '#type' => 'select',
+          '#default_value' => '1',
           '#required' => TRUE,
             '#options' => array(
               '1' => 'One-time payment',
