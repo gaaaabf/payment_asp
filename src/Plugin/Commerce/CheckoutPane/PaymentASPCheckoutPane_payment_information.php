@@ -217,50 +217,41 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     }
     elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
       
-             $pc = \Drupal::service('payment_asp.PaymentASPController');     
- //ksm($pc);
-             $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
-             if($default_option->getId() == 'offsite'){
-                $pane_form['fieldset'] = [
-                     '#title' => t($default_option->getId()),
-                     '#type' => 'textfield',
-                     '#default_value' => '',
-                ];
-              }
-              elseif ($default_option->getId() == 'credit_3d') {
-                $pane_form['fieldset'] = [
-                     '#title' => t('Payment Schedule'),
-                      '#type' => 'select',
-                      '#required' => TRUE,
-                      '#default_value' => 'installment_1', 
-                      '#weight'  => '0',
-                      '#options' => array(
-                             'installment_1' => 'One-time payment',
-                             'installment_2' => '2',
-                             'installment_3' => '3',
-                             'installment_4' => '5',
-                             'installment_5' => '6',
-                          ),
-                        ];
-              }
-              elseif ($default_option->getId() == 'convenience_store') {
-                $pane_form['fieldset'] = [
-                     '#title' => t('Telphone'),
-                     '#type' => 'textfield',
-                     '#default_value' => ' ',
-                     '#weight'  => '0',
-                     '#maxlength' => '12',
-                     '#size' => '20',
-                     '#required' => TRUE,
-                ];
-              }
-            }
-//ksm( $this->order->getBillingProfile()->get('address')->first());
-
-
-
-//ksm($this->entityTypeManager->getViewBuilder('profile'));
-//ksm($this->entityTypeManager->getViewBuilder('profile')->view($this->order->getBillingProfile(), 'default'));   
+      if ($default_option->getId() == 'offsite') {
+        $pane_form['fieldset'] = [
+         '#title' => t($default_option->getId()),
+         '#type' => 'textfield',
+         '#default_value' => '',
+        ];
+      }
+      elseif ($default_option->getId() == 'credit3d') {
+        $pane_form['fieldset'] = [
+          '#title' => t('Split Count'),
+          '#type' => 'select',
+          '#default_value' => '1',
+          '#weight' => 0,
+          '#required' => TRUE,
+            '#options' => array(
+              '1' => 'One-time payment',
+              '2' => '2',
+              '3' => '3',
+              '4' => '5',
+              '5' => '6',
+            ),
+          ];
+      }
+      elseif ($default_option->getId() == 'webcvs') {
+        $pane_form['fieldset'] = [
+          '#title' => t('Telphone'),
+          '#type' => 'textfield',
+          '#default_value' => ' ',
+          '#weight' => 0,
+          '#maxlength' => '12',
+          '#size' => '20',
+          '#required' => TRUE,
+        ];
+      }
+    }
     return $pane_form;
   }
 
@@ -336,9 +327,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       '#inline_form' => $inline_form,
     ];
     $pane_form['billing_information'] = $inline_form->buildInlineForm($pane_form['billing_information'], $form_state);
-
-//ksm($pane_form['billing_information']['#inline_form']);
-
     return $pane_form;
   }
 
@@ -447,7 +435,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $this->order->setData('billing_profile_familyName',$familyName);
        
     }
- //ksm($pane_form); 
   }
 
   /**
