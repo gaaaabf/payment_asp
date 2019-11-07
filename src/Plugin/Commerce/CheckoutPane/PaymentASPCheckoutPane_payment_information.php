@@ -211,36 +211,35 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
       $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
       
-      if($default_option->getId() == 'offsite'){
+      if ($default_option->getId() == 'offsite') {
         $pane_form['fieldset'] = [
-             '#title' => t($default_option->getId()),
-             '#type' => 'textfield',
-             '#default_value' => '',
+         '#title' => t($default_option->getId()),
+         '#type' => 'textfield',
+         '#default_value' => '',
         ];
       }
-      elseif ($default_option->getId() == 'credit_3d') {
+      elseif ($default_option->getId() == 'credit3d') {
         $pane_form['fieldset'] = [
-             '#title' => t('Payment Schedule'),
-              '#type' => 'select',
-                          '#required' => TRUE,
-                          //'#default_value' => 'schedule_1', 
-                          '#options' => array(
-                                 'installment_1' => 'One-time payment',
-                                 'installment_2' => '2',
-                                 'installment_3' => '3',
-                                 'installment_4' => '5',
-                                 'installment_5' => '6',
-                          ),
-        ];
+          '#title' => t('Split Count'),
+          '#type' => 'select',
+          '#required' => TRUE,
+            '#options' => array(
+              '1' => 'One-time payment',
+              '2' => '2',
+              '3' => '3',
+              '4' => '5',
+              '5' => '6',
+            ),
+          ];
       }
-      elseif ($default_option->getId() == 'convenience_store') {
+      elseif ($default_option->getId() == 'webcvs') {
         $pane_form['fieldset'] = [
-             '#title' => t('Telphone'),
-             '#type' => 'textfield',
-             '#default_value' => ' ',
-             '#maxlength' => '12',
-             '#size' => '20',
-             '#required' => TRUE,
+         '#title' => t('Telphone'),
+         '#type' => 'textfield',
+         '#default_value' => ' ',
+         '#maxlength' => '12',
+         '#size' => '20',
+         '#required' => TRUE,
         ];
       }
     }
