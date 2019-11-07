@@ -85,8 +85,8 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		  '#default_value' => $this->configuration['service_id'],
 		  '#required' => TRUE,
 		];
-ksm($this->order);
-		return $form;
+ 
+ 	return $form;
 	}
 
 	/**
@@ -137,15 +137,18 @@ ksm($this->order);
 		date_default_timezone_set('Japan');
 
 		$order = $payment->getOrder();
+		
 		$orderData = $pc->getOrderDetails($order);
 
 		$payment_gateway_parameter  = $order->getData("payment_gateway_parameter");
+        $givenName = $order->getData("billing_profile_givenName");
+        $familyName = $order->getData("billing_profile_familyName");
 
 		$method_type = 	$this->configuration['method_type'];
 
 		switch ($method_type) {
 			case 'webcvs':
-				$free_csv = "LAST_NAME=" . $orderData['free_csv_lastname'] . ",FIRST_NAME=" . $orderData['free_csv_firstname'] . ",MAIL=" . $orderData['free_csv_email'] . ",TEL=" . $payment_gateway_parameter;		
+				$free_csv = "LAST_NAME=" . $familyName . ",FIRST_NAME=" . $givenName . ",MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter;		
 				break;
 			case 'credit3d':
 				$free_csv = $payment_gateway_parameter;	
@@ -162,7 +165,7 @@ ksm($this->order);
 					"cust_code"			=> $orderData['cust_code'],
 					"sps_cust_no"		=> "",
 					"sps_payment_no"	=> "",
-					"order_id"			=> $orderData['order_id'],
+					"order_id"			=> $orderData['order_id'].date("YmdGis"),
 					"item_id"			=> $orderData['orderDetail'][0]["dtl_item_id"],
 					"pay_item_id"		=> "",
 					"item_name"			=> $orderData['orderDetail'][0]["dtl_item_name"],
