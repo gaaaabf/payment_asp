@@ -31,7 +31,9 @@ use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsNotifications
  *   payment_type = "payment_default"
  * )
  */
-class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements SupportsNotificationsInterface{
+class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements SupportsNotificationsInterface {
+
+
 
 	/**
 	* {@inheritdoc}
@@ -83,7 +85,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		  '#default_value' => $this->configuration['service_id'],
 		  '#required' => TRUE,
 		];
-
+ksm($this->order);
 		return $form;
 	}
 
@@ -91,6 +93,8 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* {@inheritdoc}
 	*/
 	public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
+		$pc = \Drupal::service('payment_asp.PaymentASPController');
+		
 		parent::submitConfigurationForm($form, $form_state);
 		$values = $form_state->getValue($form['#parents']);
 		$this->configuration['method_type'] = $values['method_type'];
@@ -98,6 +102,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		$this->configuration['service_id'] = $values['service_id'];
 		$this->configuration['hashkey'] = $values['hashkey'];
 
+		$pc->setId($values['method_type']);
 	}
 
 	/**
@@ -126,23 +131,32 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* Gets the order data from Controller
 	*/
 	public function getOrderData(PaymentInterface $payment) {
-	  $languageCheck = \Drupal::service('payment_asp.languageCheck');
-	  $pc = \Drupal::service('payment_asp.PaymentASPController');
+	    $languageCheck = \Drupal::service('payment_asp.languageCheck');
+	    $pc = \Drupal::service('payment_asp.PaymentASPController');
 		$current_uri = \Drupal::request()->getRequestUri();
 		date_default_timezone_set('Japan');
 
 		$order = $payment->getOrder();
 		$orderData = $pc->getOrderDetails($order);
 
-		$paymentGateway = $payment->getPaymentGateway()->id();
+		$payment_gateway_parameter  = $order->getData("payment_gateway_parameter");
 
-		switch ($paymentGateway) {
-			case 'credit_card_3d':
+		$method_type = 	$this->configuration['method_type'];
+
+		switch ($method_type) {
+			case 'webcvs':
+				$free_csv = "LAST_NAME=" . $orderData['free_csv_lastname'] . ",FIRST_NAME=" . $orderData['free_csv_firstname'] . ",MAIL=" . $orderData['free_csv_email'] . ",TEL=" . $payment_gateway_parameter;		
+				break;
+			case 'credit3d':
+				$free_csv = $payment_gateway_parameter;	
+				break;
+		}
+
 				// DEALINGS_TYPE
 				// DIVIDE_TIMES 
 				// ONE_TIME_CHARGE_CUSTOMER_REGIST
 				$postdata = [
-					'pay_method'		=> $this->configuration['method_type'],
+					'pay_method'		=> $method_type,
 					'merchant_id'		=> $this->configuration['merchant_id'],
 					'service_id'		=> $this->configuration['service_id'],
 					"cust_code"			=> $orderData['cust_code'],
@@ -169,7 +183,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 					"free1"				=> "",
 					"free2"				=> "",
 					"free3"				=> "",
-					"free_csv"			=> "LAST_NAME=鈴木,FIRST_NAME=太郎,LAST_NAME_KANA=スズキ,FIRST_NAME_KANA=タロウ,FIRST_ZIP=210,SECOND_ZIP=0001,ADD1=岐阜県,ADD2=あああ市あああ町,ADD3=,TEL=12345679801,MAIL=aaaa@bb.jp,ITEM_NAME=TEST ITEM",
+					"free_csv"			=> $free_csv,	
 					'dtl_rowno'			=> $orderData['orderDetail'][0]["dtl_rowno"],
 					'dtl_item_id'		=> $orderData['orderDetail'][0]["dtl_item_id"],
 					'dtl_item_name'		=> $orderData['orderDetail'][0]["dtl_item_name"],
@@ -184,11 +198,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 					"hashkey"			=> $this->configuration['hashkey'],
 				];
 
-				break;
-			
-			case 'webcvs':
-				break;
-		}
+		
 
 		// Check each parameter if Japanese/Chinese character
 		foreach ($postdata as $key => $value) {
@@ -196,7 +206,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 				$postdata[$key] = base64_encode($postdata[$key]);
 			}
 		}
-		
+		//
 		return $postdata;
 	}
 
