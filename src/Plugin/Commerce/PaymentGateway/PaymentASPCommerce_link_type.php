@@ -64,6 +64,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 						'credit3d' => 'Credit Card with 3D Secure (credit3d)',
 						'webcvs' => 'Convenience Store (webcvs)',
 						'unionpay' => 'Unionpay (unionpay)',
+						'paypal' => 'Paypal (paypal)',
 			  ),
 			];
 
@@ -123,29 +124,41 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	*/
 	public function onNotify(Request $request) {
 		\Drupal::logger('payment_asp')->notice($request);
-		\Drupal::logger('payment_asp')->notice($request->get('res_result'));
-		\Drupal::logger('payment_asp')->notice($request->get('amount'));
+		$pc = \Drupal::service('payment_asp.PaymentASPController');
+		
+		// Response from SBPS is always JPY
+    $price = new Price($request->get('amount'), 'JPY');
+    // Convert to current currency
+    $amount = $pc->currencyConverter($price, $pc->getCurrentCurrency());
+
+		$payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+		$payment = $payment_storage->create([
+		  'state' => 'completed',
+		  'amount' => $amount,
+		  'payment_gateway' => $this->entityId,
+		  'order_id' => $request->get('order_id'),
+		  'test' => $this->getMode() == 'test',
+		  'remote_id' => $request->get('res_tracking_id'),
+		  'remote_state' => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
+		  'authorized' => $this->time->getRequestTime(),
+		]);
+		$payment->save();
+		if ($request->get('res_result') == 'OK') {
+       // Save to database
+       $query = \Drupal::database();
+       $query->insert('payment_asp_pd')
+             ->fields(array(
+					     'p_fk_id' => $payment->id(),
+					     'tracking_id' => (string) $request->get('res_tracking_id'),
+					     'sps_transaction_id' => (int) $request->get('res_sps_transaction_id'),
+					     'processing_datetime' => (int) $request->get('res_process_date'),
+             ))
+             ->execute();
+		} else if ($request->get('res_result') == 'NG') {
+
+		}
+
 		return new JsonResponse('OK keeyoh');
-
-		// $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-
-		// $payment = $payment_storage->create([
-		//   'state' => 'completed',
-		//   'amount' => new Price($request->get('amount'), 'JPY'),
-		//   'payment_gateway' => $this->entityId,
-		//   'order_id' => $request->get('order_id'),
-		//   'test' => $this->getMode() == 'test',
-		//   'remote_id' => $request->get('res_tracking_id'),
-		//   'remote_state' => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
-		//   'authorized' => $this->time->getRequestTime(),
-		// ]);
-		// if ($request->get('res_result') == 'OK') {
-		// 	$payment->save();
-		// } else if ($request->get('res_result') == 'NG') {
-
-		// }
-
-		// return new JsonResponse('OK keeyoh');
 	}
 
 	/**
@@ -171,14 +184,16 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 				$free_csv = "LAST_NAME=" . $familyName . ",FIRST_NAME=" . $givenName . ",MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter;		
 				break;
 			case 'credit3d':
-				$payment_gateway_parameter  = (int) $order->getData("payment_gateway_parameter");
-				if ($divide_times > 1) {
-					$currentDate = date('Ym');
-					$pay_type = 1;
-					$auto_charge_type = 1;
-					$div_settele = 0;
-					$last_charge_month = $currentDate;
-				}
+				// $payment_gateway_parameter  = (int) $order->getData("payment_gateway_parameter");
+				// if ($divide_times > 1) {
+				// 	$currentDate = date('Ym');
+				// 	$pay_type = 1;
+				// 	$auto_charge_type = 1;
+				// 	$div_settele = 0;
+				// 	$last_charge_month = $currentDate;
+				// }
+				break;
+			case 'unionpay':
 				break;
 		}
     
@@ -189,7 +204,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"cust_code"			=> $orderData['cust_code'],
 			"sps_cust_no"		=> "",
 			"sps_payment_no"	=> "",
-			"order_id"			=> $orderData['order_id'],
+			"order_id"			=> $orderData['order_id'].date("YmdGis"),
 			"item_id"			=> $orderData['orderDetail'][0]["dtl_item_id"],
 			"pay_item_id"		=> "",
 			"item_name"			=> $orderData['orderDetail'][0]["dtl_item_name"],
