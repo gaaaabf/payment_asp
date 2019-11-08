@@ -210,7 +210,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
 
     $default_payment_gateway_id = $default_option->getPaymentGatewayId();
     $payment_gateway = $payment_gateways[$default_payment_gateway_id];
-//ksm($payment_gateway->getPlugin());
     
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
       $pane_form = $this->buildPaymentMethodForm($pane_form, $form_state, $default_option);
@@ -224,22 +223,22 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
          '#default_value' => '',
         ];
       }
-      elseif ($default_option->getId() == 'credit3d') {
-        $pane_form['fieldset'] = [
-          '#title' => t('Split Count'),
-          '#type' => 'select',
-          '#default_value' => '1',
-          '#weight' => 0,
-          '#required' => TRUE,
-            '#options' => array(
-              '1' => 'One-time payment',
-              '2' => '2',
-              '3' => '3',
-              '4' => '5',
-              '5' => '6',
-            ),
-          ];
-      }
+      // elseif ($default_option->getId() == 'credit3d') {
+      //   $pane_form['fieldset'] = [
+      //     '#title' => t('Split Count'),
+      //     '#type' => 'select',
+      //     '#default_value' => '1',
+      //     '#weight' => 0,
+      //     '#required' => TRUE,
+      //       '#options' => array(
+      //         '1' => 'One-time payment',
+      //         '2' => '2',
+      //         '3' => '3',
+      //         '4' => '5',
+      //         '5' => '6',
+      //       ),
+      //     ];
+      // }
       elseif ($default_option->getId() == 'webcvs') {
         $pane_form['fieldset'] = [
           '#title' => t('Telphone'),
@@ -252,6 +251,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         ];
       }
     }
+    // ksm($this->order->getBillingProfile());
     return $pane_form;
   }
 
