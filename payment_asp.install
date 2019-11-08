@@ -14,7 +14,7 @@ function payment_asp_schema() {
     'fields' => array(
       'pd_id' => array(
         'description' => 'ID.',
-        'type' => 'int',
+        'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
@@ -27,20 +27,23 @@ function payment_asp_schema() {
       'sps_transaction_id' => array(
         'description' => 'Tracking ID for payment trasaction to SBS',
         'type' => 'int',
+        'size' => 'big',
         'unsigned' => TRUE,
-        'not null' => TRUE,
+        'not null' => FALSE,
       ),
       'tracking_id' => array(
         'description' => 'Tracking ID for payment trasaction to SBS',
         'type' => 'int',
+        'size' => 'big',
         'unsigned' => TRUE,
-        'not null' => TRUE,
+        'not null' => FALSE,
       ),
       'processing_datetime' => array(
         'description' => 'Datetime proccessing',
         'type' => 'int',
+        'size' => 'big',
         'unsigned' => TRUE,
-        'not null' => TRUE,
+        'not null' => FALSE,
       ),
     ),
     'primary key' => array(
