@@ -147,8 +147,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form) {
 
-//ksm(Drupal\payment_asp\Plugin\Commerce\PaymentGateway\PaymentASPCommerce_link_type);
-
     if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
       // No payment is needed if the order is free or has already been paid.
       // In that case, collect just the billing information.
@@ -211,55 +209,27 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     $default_payment_gateway_id = $default_option->getPaymentGatewayId();
     $payment_gateway = $payment_gateways[$default_payment_gateway_id];
 
-
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
       $pane_form = $this->buildPaymentMethodForm($pane_form, $form_state, $default_option);
+    } elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
+      if ($default_option->getId() == 'offsite') {
+        $pane_form['fieldset'] = [
+         '#title' => t($default_option->getId()),
+         '#type' => 'textfield',
+         '#default_value' => '',
+        ];
+      } elseif ($default_option->getId() == 'webcvs') {
+        $pane_form['fieldset'] = [
+          '#title' => t('Telphone'),
+          '#type' => 'textfield',
+          '#default_value' => ' ',
+          '#weight' => 0,
+          '#maxlength' => '12',
+          '#size' => '20',
+          '#required' => TRUE,
+        ];
+      }
     }
-    elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
-      
-             $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
-             
-             if($default_option->getId() == 'offsite'){
-                $pane_form['fieldset'] = [
-                     '#title' => t($default_option->getId()),
-                     '#type' => 'textfield',
-                     '#default_value' => '',
-                ];
-              }
-              elseif ($default_option->getId() == 'credit_3d') {
-                $pane_form['fieldset'] = [
-                     '#title' => t('Payment Schedule'),
-                      '#type' => 'select',
-                      '#required' => TRUE,
-                      '#default_value' => 'installment_1', 
-                      '#weight'  => '0',
-                      '#options' => array(
-                             'installment_1' => 'One-time payment',
-                             'installment_2' => '2',
-                             'installment_3' => '3',
-                             'installment_4' => '5',
-                             'installment_5' => '6',
-                          ),
-                        ];
-              }
-              elseif ($default_option->getId() == 'convinience_store') {
-                $pane_form['fieldset'] = [
-                     '#title' => t('Telphone'),
-                     '#type' => 'textfield',
-                     '#default_value' => ' ',
-                     '#weight'  => '0',
-                     '#maxlength' => '12',
-                     '#size' => '20',
-                     '#required' => TRUE,
-                ];
-              }
-            }
-
-
-//ksm($this->entityTypeManager->getViewBuilder('profile'));
-//ksm($this->entityTypeManager->getViewBuilder('profile')->view($this->order->getBillingProfile(), 'default'));   
- //ksm($this->order->getBillingProfile());
- 
     return $pane_form;
   }
 
@@ -335,9 +305,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       '#inline_form' => $inline_form,
     ];
     $pane_form['billing_information'] = $inline_form->buildInlineForm($pane_form['billing_information'], $form_state);
-
-//ksm($pane_form['billing_information']['#inline_form']);
-
     return $pane_form;
   }
 
@@ -376,7 +343,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       /** @var \Drupal\profile\Entity\ProfileInterface $billing_profile */
       $billing_profile = $inline_form->getEntity();
       $this->order->setBillingProfile($billing_profile);
- ksm($this->order->setBillingProfile($billing_profile));
       // The billing profile is provided either because the order is free,
       // or the selected gateway is off-site. If it's the former, stop here.
       if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
@@ -453,8 +419,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $this->order->setData('billing_profile_familyName',$familyName);
        
     }
-ksm($this->order->setBillingProfile($billing_profile));
- 
   }
 
   /**
