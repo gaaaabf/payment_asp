@@ -183,8 +183,7 @@ ksm('buildConfigurationSummary');
       'payment_gateway' => $payment_gateway->id(),
       'order_id' => $this->order->id(),
     ]);   
-    $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());   //    $next_step_id  = 'complete'
-
+    $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
 
     if ($payment_gateway_plugin instanceof OnsitePaymentGatewayInterface) {
     // Custom Response handling for API/Onsite payment gateways
@@ -265,9 +264,8 @@ ksm('buildConfigurationSummary');
         $this->messenger()->addError($message);
         $this->checkoutFlow->redirectToStep($error_step_id);
       }
-      $service = \Drupal::service('payment_asp.PaymentASPController');
-      $id = $service->getOrderIdByURI();
-      $order =  \Drupal\commerce_order\Entity\Order::load($id);
+      $id = $this->order->id();
+      $order = \Drupal\commerce_order\Entity\Order::load($id);
       $order->unlock();
       $order->save();
       return $pane_form;
