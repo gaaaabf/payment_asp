@@ -265,8 +265,9 @@ ksm('buildConfigurationSummary');
         $this->messenger()->addError($message);
         $this->checkoutFlow->redirectToStep($error_step_id);
       }
-      $service = \Drupal::service('payment_asp.PaymentASPController');
-      $id = $service->getOrderIdByURI();
+      // $service = \Drupal::service('payment_asp.PaymentASPController');
+      // $id = $service->getOrderIdByURI();
+      $id = $this->order->id();
       $order =  \Drupal\commerce_order\Entity\Order::load($id);
       $order->unlock();
       $order->save();
