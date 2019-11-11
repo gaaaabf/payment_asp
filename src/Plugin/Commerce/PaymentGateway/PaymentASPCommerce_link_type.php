@@ -135,9 +135,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		$pc = \Drupal::service('payment_asp.PaymentASPController');
 		
 		// Response from SBPS is always JPY
-	    $price = new Price($request->get('amount'), 'JPY');
-	    // Convert to current currency
-	    $amount = $pc->currencyConverter($price, $pc->getCurrentCurrency());
+	    $amount = new Price($request->get('amount'), 'JPY');
 
 		$payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
 		$payment = $payment_storage->create([
