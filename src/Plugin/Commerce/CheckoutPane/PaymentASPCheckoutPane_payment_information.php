@@ -147,8 +147,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form) {
 
-//ksm(Drupal\payment_asp\Plugin\Commerce\PaymentGateway\PaymentASPCommerce_link_type);
-
     if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
       // No payment is needed if the order is free or has already been paid.
       // In that case, collect just the billing information.
@@ -210,36 +208,17 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
 
     $default_payment_gateway_id = $default_option->getPaymentGatewayId();
     $payment_gateway = $payment_gateways[$default_payment_gateway_id];
-    
+
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
       $pane_form = $this->buildPaymentMethodForm($pane_form, $form_state, $default_option);
-    }
-    elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
-      
+    } elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
       if ($default_option->getId() == 'offsite') {
         $pane_form['fieldset'] = [
          '#title' => t($default_option->getId()),
          '#type' => 'textfield',
          '#default_value' => '',
         ];
-      }
-      // elseif ($default_option->getId() == 'credit3d') {
-      //   $pane_form['fieldset'] = [
-      //     '#title' => t('Split Count'),
-      //     '#type' => 'select',
-      //     '#default_value' => '1',
-      //     '#weight' => 0,
-      //     '#required' => TRUE,
-      //       '#options' => array(
-      //         '1' => 'One-time payment',
-      //         '2' => '2',
-      //         '3' => '3',
-      //         '4' => '5',
-      //         '5' => '6',
-      //       ),
-      //     ];
-      // }
-      elseif ($default_option->getId() == 'webcvs') {
+      } elseif ($default_option->getId() == 'webcvs') {
         $pane_form['fieldset'] = [
           '#title' => t('Telphone'),
           '#type' => 'textfield',
@@ -251,7 +230,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         ];
       }
     }
-    // ksm($this->order->getBillingProfile());
     return $pane_form;
   }
 
@@ -358,9 +336,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
 
-    $value_address  =  $this->order->getBillingProfile()->get('address');
-    $givenName   =  $value_address->first()->getGivenName();
-    $familyName  =  $value_address->first()->getFamilyName();
     
     if (isset($pane_form['billing_information'])) {
       /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
@@ -374,6 +349,10 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         return;
       }
     }
+//------------------------------- ADDED BY RENIER -------------------------------
+    $value_address  =  $this->order->getBillingProfile()->get('address');
+    $givenName   =  $value_address->first()->getGivenName();
+    $familyName  =  $value_address->first()->getFamilyName();
 
     $values = $form_state->getValue($pane_form['#parents']);
     /** @var \Drupal\commerce_payment\PaymentOption $selected_option */
@@ -382,6 +361,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     $payment_gateway_storage = $this->entityTypeManager->getStorage('commerce_payment_gateway');
     /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface $payment_gateway */
     $payment_gateway = $payment_gateway_storage->load($selected_option->getPaymentGatewayId());
+ 
+
     if (!$payment_gateway) {
       return;
     }
@@ -408,6 +389,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $this->order->setData('billing_profile_familyName',$familyName);
       // Copy the billing information to the order.
       $payment_method_profile = $payment_method->getBillingProfile();
+
       if ($payment_method_profile) {
         $billing_profile = $this->order->getBillingProfile();
         if (!$billing_profile) {
@@ -427,8 +409,10 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       }
     }
     else {
+
+
       $this->order->set('payment_gateway', $payment_gateway);
-      $this->order->set('payment_method', NULL);
+      //$this->order->set('payment_method', NULL);
       /** ADDED BY RENDROID  */
       $this->order->setData('payment_gateway_parameter', $pane_form['fieldset']['#value']); 
       $this->order->setData('billing_profile_givenName',$givenName);
