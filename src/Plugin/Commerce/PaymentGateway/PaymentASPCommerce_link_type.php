@@ -54,12 +54,20 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	*/
 	public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
 		$form = parent::buildConfigurationForm($form, $form_state);
+			
+		if($this->configuration['method_type'] != NULL){
+			$default_value = $this->configuration['method_type'];
+		}
+		else{
+			$default_value = 'credit3d';
+		}
 
 			$form['method_type'] = [
 			  '#title' => t('Payment Method'),
 			  '#type' => 'select',
 			  '#required' => TRUE,
 			  '#description' => '<b>MACHINE NAME</b> above must be the same with the word inside the parenthesis ()',
+			  '#default_value' => $default_value,
 			  '#options' => array(
 						'credit3d' => 'Credit Card with 3D Secure (credit3d)',
 						'webcvs' => 'Convenience Store (webcvs)',
@@ -102,7 +110,14 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		$this->configuration['merchant_id'] = $values['merchant_id'];
 		$this->configuration['service_id'] = $values['service_id'];
 		$this->configuration['hashkey'] = $values['hashkey'];
+	}
 
+
+	/**
+	* {@inheritdoc}
+	*/
+	public function onCancel(OrderInterface $order, Request $request) {
+		ksm($request);
 	}
 
 	/**
@@ -128,9 +143,9 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		$pc = \Drupal::service('payment_asp.PaymentASPController');
 		
 		// Response from SBPS is always JPY
-    $price = new Price($request->get('amount'), 'JPY');
-    // Convert to current currency
-    $amount = $pc->currencyConverter($price, $pc->getCurrentCurrency());
+	    $price = new Price($request->get('amount'), 'JPY');
+	    // Convert to current currency
+	    $amount = $pc->currencyConverter($price, $pc->getCurrentCurrency());
 
 		$payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
 		$payment = $payment_storage->create([
@@ -145,16 +160,15 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		]);
 		$payment->save();
 		if ($request->get('res_result') == 'OK') {
-       // Save to database
-       $query = \Drupal::database();
-       $query->insert('payment_asp_pd')
-             ->fields(array(
+			// Save to database
+			$query = \Drupal::database();
+			$query->insert('payment_asp_pd')
+			    	->fields(array(
 					     'p_fk_id' => $payment->id(),
 					     'tracking_id' => (string) $request->get('res_tracking_id'),
 					     'sps_transaction_id' => (int) $request->get('res_sps_transaction_id'),
 					     'processing_datetime' => (int) $request->get('res_process_date'),
-             ))
-             ->execute();
+             ))->execute();
 		} else if ($request->get('res_result') == 'NG') {
 
 		}
@@ -166,8 +180,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* Gets the order data from Controller
 	*/
 	public function getOrderData(PaymentInterface $payment) {
-    $languageCheck = \Drupal::service('payment_asp.languageCheck');
-    $pc = \Drupal::service('payment_asp.PaymentASPController');
+    	$pc = \Drupal::service('payment_asp.PaymentASPController');
 		$current_uri = \Drupal::request()->getRequestUri();
 		date_default_timezone_set('Japan');
 
@@ -175,8 +188,9 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		$order = $payment->getOrder();
 		// Common order data parameters
 		$orderData = $pc->getOrderDetails($order);
-    $givenName = $order->getData("billing_profile_givenName");
-    $familyName = $order->getData("billing_profile_familyName");
+        $givenName = $order->getData("billing_profile_givenName");
+        $familyName = $order->getData("billing_profile_familyName");
+        // Optional payment gateway paramater
 		$payment_gateway_parameter = $order->getData("payment_gateway_parameter");
 		// $paymentGateway = $payment->getPaymentGateway()->id();
 
@@ -267,7 +281,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 
 		// Check each parameter if Japanese/Chinese character
 		foreach ($postdata as $key => $value) {
-			if ($languageCheck->isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
+			if (\Drupal\payment_asp\languageCheck::isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
 				$postdata[$key] = base64_encode($postdata[$key]);
 			}
 		}
