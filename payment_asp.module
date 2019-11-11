@@ -5,38 +5,23 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\payment_asp\Controller\PaymentASPController;
 use Drupal\commerce_payment\PaymentOption;
 
+
+
+/**
+* Implements hook_commerce_checkout_pane_info_alter(array &$panes).
+*/
+function payment_asp_commerce_checkout_pane_info_alter(array &$panes) {
+	$panes['payment_information']['class'] = 'Drupal\payment_asp\Plugin\Commerce\CheckoutPane\PaymentASPCheckoutPane_payment_information';
+}
+
 /**
 * Implements hook_form_alter(&$form, FormStateInterface $form_state, $form_id).
 */
 function payment_asp_form_alter(&$form, FormStateInterface $form_state, $form_id) {
 
-	// $order = \Drupal\commerce_order\Entity\Order::load(36);
-	// 		$order->set('state', 'draft');
-	// 		$order->set('checkout_step', 'review');
-	// 		$order->set('cart', 1);
-	// 		$order->set('locked', 0);
-	// 		$order->save();
-
 	// Commerce Checkout step "Order Information"
 	if($form_id == 'commerce_checkout_flow_multistep_default' && $form['#step_id'] == 'order_information') {
-
-		// Add Split Count select input on Credit Card Selection
-		if(isset($form['payment_information']['add_payment_method']['payment_details'])) {
-			$form['payment_information']['add_payment_method']['payment_details']['payment_installment'] = [
-		      '#title' => t('Split Count'),
-		      '#type' => 'select',
-		      '#required' => TRUE,
-		      '#default_value' => 'One-time payment', 
-		      '#options' => array(
-		      	'One-time payment' => 'One-time payment',
-		      	'2' => '2',
-		      	'3' => '3',
-		      	'5' => '5',
-		      	'6' => '6',
-		      ),
-			];
-		}
-
+		
 		$payment_methods = \Drupal\commerce_payment\Entity\PaymentMethod::loadMultiple();
 		if(isset($payment_methods)) {
 			foreach ($payment_methods as $key => $value) {

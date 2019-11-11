@@ -167,6 +167,19 @@ class PaymentASPMethodAddForm_creditcard extends PaymentMethodFormBase {
       '#maxlength' => 4,
       '#size' => 4,
     ];
+    $element['payment_installment'] = [
+        '#title' => t('Split Count'),
+        '#type' => 'select',
+        '#required' => TRUE,
+        '#default_value' => 'One-time payment', 
+        '#options' => array(
+          'One-time payment' => 'One-time payment',
+          '2' => '2',
+          '3' => '3',
+          '5' => '5',
+          '6' => '6',
+        ),
+    ];
 
     return $element;
   }

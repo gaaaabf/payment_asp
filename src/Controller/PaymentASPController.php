@@ -2,48 +2,142 @@
 namespace Drupal\payment_asp\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-
+use Drupal\commerce_currency_resolver\CurrencyHelper;
+use Drupal\commerce_price\Price;
 
 class PaymentASPController extends ControllerBase {
 
   public function __construct() {
-  
+
   }
 
-  public function getOrderDetails($order) {
-  	// $uid = \Drupal::currentUser()->id();
-  	// $current_uri = \Drupal::request()->getRequestUri();
-  	// $current_uri = explode('/', $current_uri);
-  	// $order_id = $current_uri[3];
+  /**
+  * Gets order entity based by URI
+  */
+  public function getOrderIdByURI() {
+    $current_uri = \Drupal::request()->getRequestUri();
+    $current_uri = explode('/', $current_uri);
+      for ($i=0; $i != sizeof($current_uri) ; $i++) { 
+        if (is_numeric($current_uri[$i])) {
+          $order_id = $current_uri[$i];
+        }
+    }
+    return $order_id; 
+  }
 
-  	// $order = \Drupal\commerce_order\Entity\Order::load($order_id);
+  /**
+  * Gets current currency
+  */
+  public function getCurrentCurrency() {
+    // Get all active currencies.
+    $active_currencies = CurrencyHelper::getEnabledCurrency();
 
-    $order_id = $order->id();
+    // Get cookies.
+    $cookies = \Drupal::request()->cookies;
+
+    // Get values from cookie.
+    if ($cookies->has('commerce_currency') && isset($active_currencies[$cookies->get('commerce_currency')])) {
+      $current_currency = $cookies->get('commerce_currency');
+    } else {
+      $current_currency = \Drupal::config('commerce_currency_resolver.settings')->get('currency_default');
+    }
+
+    return $current_currency;
+  }
+
+  /**
+   * Converts the current price to the given currency.
+   *
+   * @param \Drupal\commerce_price\Price $price
+   *   The price.
+   * @param string $currency_code
+   *   The currency code.
+   *
+   * @return static
+   *   The resulting price.
+   */
+  public function currencyConverter(Price $price, $currency_code = 'JPY') {
+    // Get all active currencies.
+    $active_currencies = CurrencyHelper::getEnabledCurrency();
+    // Get currency configurations
+    $config = $this->config('commerce_currency_resolver.currency_conversion');
+    // Get current currency used
+    $order_currency_orig = $price->getCurrencyCode();
+    if ($order_currency_orig == $currency_code) {
+      $conversion_rate = 1;
+    } else {
+      $conversion_rate = $config->get('exchange')[$order_currency_orig][$currency_code]['value'];
+    }
+    $totalPrice = $price->convert($currency_code, $conversion_rate);
+    $totalPrice = $totalPrice->getNumber();
+    $totalPrice = number_format((float)$totalPrice, 0, '.', '');
+
+    // SBPS only accepts JPY Currency and whole number
+    // if ($order_currency_orig != 'JPY') {
+    //   foreach ($active_currencies as $key => $value) {
+    //     if ($key == $order_currency_orig) {
+    //       $conversion_rate = $config->get('exchange')[$key]['JPY']['value'];   
+    //     }
+    //   }
+    //   $totalPrice = $amount->convert('JPY', $conversion_rate);
+    //   $totalPrice = $totalPrice->getNumber();
+    //   $totalPrice = number_format((float)$totalPrice, 0, '.', '');
+    // } else {
+    //   $totalPrice = $amount->getNumber();
+    //   $totalPrice = number_format((float)$totalPrice, 0, '.', '');
+    // }
+
+    return $totalPrice;
+  }
+
+  /**
+  * Gets common order parameters for payment request
+  */
+  public function getOrderDetails($order = NULL) {
+    $currency_formatter = \Drupal::service('commerce_price.currency_formatter');
+    if (is_null($order)) {
+      $order_id = $this->getOrderIdByURI();
+      $order = \Drupal\commerce_order\Entity\Order::load($order_id);
+    } else {  
+      $order_id = $order->id();
+    }
 
     $orderDetail = [];
     $perItem = [];
     $items = $order->getItems();
 
     for ($i=0; $i != count($items); $i++) { 
-      $perItem['dtl_rowno'] = $i+1;
+      $item_price = $items[$i]->getUnitPrice();
+      $perItem['dtl_rowno'] = (int) $i+1;
       $perItem['dtl_item_id'] = $items[$i]->id();
       $perItem['dtl_item_name'] = $items[$i]->label();
+      $perItem['dtl_amount'] = (int) $this->currencyConverter($item_price, 'JPY');
       $perItem['dtl_item_count'] = (int)$items[$i]->getQuantity();
 
       $taxEntity = $items[$i]->getAdjustments(array('tax'));
-      $taxPercentage = $taxEntity[0]->getPercentage()*100;
-      $perItem['dtl_tax'] = (string)$taxPercentage.'%';
+      if($taxEntity[0] == NULL){
+        $taxPercentage = 0;
+      } else {
+        $taxPercentage = $taxEntity[0]->getPercentage()*100;
+      }
+      $perItem['dtl_tax'] = (string)$taxPercentage;
 
       array_push($orderDetail, $perItem);
       // $orderDetail['orderDetail'.$i] = $perItem;
     }
 
+    $totalPrice = $this->currencyConverter($order->getTotalPrice(), 'JPY');
+
     $data_needed = array(
       'order_id' => $order_id,
       'cust_code' => $order->getCustomer()->getDisplayName(),
-      'amount' => $order->getTotalPrice()->getNumber(),
+      'amount' => $totalPrice,
       'tax' => $perItem['dtl_tax'],
       'orderDetail' => $orderDetail,
+      // No value as for the moment
+      'dtl_free1' => '',
+      'dtl_free2' => '',
+      'dtl_free3' => '',
     );
 
     return $data_needed;
@@ -53,8 +147,6 @@ class PaymentASPController extends ControllerBase {
 
     $data = $this->getOrderDetails($order);
     $order_id = $order->id();
-
-    ksm($_SESSION[$order_id."cc_data"]);
 
     // API送信データ
     $merchant_id              = $merchant_id;
@@ -70,9 +162,9 @@ class PaymentASPController extends ControllerBase {
     $free3                    = "";
     $order_rowno              = "";
     $sps_cust_info_return_flg = "1";
-    $cc_number                = $_SESSION[$order_id."cc_data"]['number'];
-    $cc_expiration            = $_SESSION[$order_id."cc_data"]['expiration'];
-    $security_code            = $_SESSION[$order_id."cc_data"]['security_code'];
+    $cc_number                = $_SESSION["cc_data_".$order_id]['number'];
+    $cc_expiration            = $_SESSION["cc_data_".$order_id]['expiration'];
+    $security_code            = $_SESSION["cc_data_".$order_id]['security_code'];
     // $cc_number                = "5250729026209007";
     // $cc_expiration            = "201103";
     // $security_code            = "798";
@@ -105,35 +197,68 @@ class PaymentASPController extends ControllerBase {
     $limit_second             = mb_convert_encoding($limit_second, 'Shift_JIS', 'UTF-8');
     $hashkey                  = mb_convert_encoding($hashkey, 'Shift_JIS', 'UTF-8');
 
-    // 送信情報データ連結
-    $result =
-        $merchant_id .
-        $service_id .
-        $cust_code .
-        $order_id .
-        $item_id .
-        $item_name .
-        $tax .
-        $amount .
-        $free1 .
-        $free2 .
-        $free3 .
-        $order_rowno .
-        $sps_cust_info_return_flg .
-        $cc_number .
-        $cc_expiration .
-        $security_code .
-        $cust_manage_flg .
-        $encrypted_flg .
-        $request_date .
-        $limit_second .
-        $hashkey;
+    if ($_SESSION["cc_data_".$order_id]['payment_installment'] != 'One-time payment') {
+      $cardbrand_return_flg = "0";
+      $div_settele = "0";
+      $last_charge_month = "";
+      $camp_type = "0";
+
+      $cardbrand_return_flg = mb_convert_encoding($cardbrand_return_flg, 'Shift_JIS', 'UTF-8');
+      $div_settele = mb_convert_encoding($div_settele, 'Shift_JIS', 'UTF-8');
+      $last_charge_month = mb_convert_encoding($last_charge_month, 'Shift_JIS', 'UTF-8');
+      $camp_type = mb_convert_encoding($camp_type, 'Shift_JIS', 'UTF-8');
+
+      // 送信情報データ連結
+      $result = $merchant_id . $service_id . $cust_code . $order_id . $item_id . $item_name . $tax . $amount . $free1 . $free2 . $free3 . $order_rowno . $sps_cust_info_return_flg . $cc_number . $cc_expiration . $security_code . $cardbrand_return_flg . $div_settele . $last_charge_month . $camp_type . $cust_manage_flg . $encrypted_flg . $request_date . $limit_second . $hashkey;
+    } else {
+      // 送信情報データ連結
+      $result = $merchant_id . $service_id . $cust_code . $order_id . $item_id . $item_name . $tax . $amount . $free1 . $free2 . $free3 . $order_rowno . $sps_cust_info_return_flg . $cc_number . $cc_expiration . $security_code . $cust_manage_flg . $encrypted_flg . $request_date . $limit_second . $hashkey;
+    }
 
     // SHA1変換
-    $sps_hashcode = sha1( $result );
+    $sps_hashcode = sha1($result);
 
     // POSTデータ生成
-    $postdata =
+    if ($_SESSION["cc_data_".$order_id]['payment_installment'] != 'One-time payment') {
+      $postdata =
+        "<?xml version=\"1.0\" encoding=\"Shift_JIS\"?>" .
+        "<sps-api-request id=\"ST01-00112-101\">" .
+            "<merchant_id>"                 . $merchant_id              . "</merchant_id>" .
+            "<service_id>"                  . $service_id               . "</service_id>" .
+            "<cust_code>"                   . $cust_code                . "</cust_code>" .
+            "<order_id>"                    . $order_id                 . "</order_id>" .
+            "<item_id>"                     . $item_id                  . "</item_id>" .
+            "<item_name>"                   . base64_encode($item_name) . "</item_name>" .
+            "<tax>"                         . $tax                      . "</tax>" .
+            "<amount>"                      . $amount                   . "</amount>" .
+            "<free1>"                       . base64_encode($free1)     . "</free1>" .
+            "<free2>"                       . base64_encode($free2)     . "</free2>" .
+            "<free3>"                       . base64_encode($free3)     . "</free3>" .
+            "<order_rowno>"                 . $order_rowno              . "</order_rowno>" .
+            "<sps_cust_info_return_flg>"    . $sps_cust_info_return_flg . "</sps_cust_info_return_flg>" .
+            "<dtls>" .
+            "</dtls>" .
+            "<pay_method_info>" .
+                "<cc_number>"               . $cc_number                . "</cc_number>" .
+                "<cc_expiration>"           . $cc_expiration            . "</cc_expiration>" .
+                "<security_code>"           . $security_code            . "</security_code>" .
+                "<cust_manage_flg>"         . $cust_manage_flg          . "</cust_manage_flg>" .
+            "</pay_method_info>" .
+            "<pay_option_manage>" .
+                "<cardbrand_return_flg>"    . $cardbrand_return_flg     . "</cardbrand_return_flg>" .
+            "</pay_option_manage>" .
+            "<monthly_charge>" .
+                "<div_settele>"             . $div_settele              . "</div_settele>" .
+                "<last_charge_month>"       . $last_charge_month        . "</last_charge_month>" .
+                "<camp_type>"               . $camp_type                . "</camp_type>" .
+            "</monthly_charge>" .
+            "<encrypted_flg>"               . $encrypted_flg            . "</encrypted_flg>" .
+            "<request_date>"                . $request_date             . "</request_date>" .
+            "<limit_second>"                . $limit_second             . "</limit_second>" .
+            "<sps_hashcode>"                . $sps_hashcode             . "</sps_hashcode>" .
+        "</sps-api-request>";
+    } else {
+      $postdata =
         "<?xml version=\"1.0\" encoding=\"Shift_JIS\"?>" .
         "<sps-api-request id=\"ST01-00101-101\">" .
             "<merchant_id>"                 . $merchant_id              . "</merchant_id>" .
@@ -164,14 +289,13 @@ class PaymentASPController extends ControllerBase {
             "<limit_second>"                . $limit_second             . "</limit_second>" .
             "<sps_hashcode>"                . $sps_hashcode             . "</sps_hashcode>" .
         "</sps-api-request>";
+    }
 
     return $postdata;
   }
-
   public function getRefundDetails() {
 
     // $query = \Drupal::database();
-    
 
     // API送信データ
     $merchant_id = '';
@@ -223,6 +347,5 @@ class PaymentASPController extends ControllerBase {
         "</sps-api-request>";
 
     return $postdata;
-
   }
 }

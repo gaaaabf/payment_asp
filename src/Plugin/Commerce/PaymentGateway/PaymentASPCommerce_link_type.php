@@ -54,8 +54,6 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	*/
 	public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
 		$form = parent::buildConfigurationForm($form, $form_state);
-
-ksm($this->configuration['method_type']);	
 			
 		if($this->configuration['method_type'] != NULL){
 			$default_value = $this->configuration['method_type'];
@@ -63,8 +61,7 @@ ksm($this->configuration['method_type']);
 		else{
 			$default_value = 'credit3d';
 		}
-ksm($default_value);	
-	
+
 			$form['method_type'] = [
 			  '#title' => t('Payment Method'),
 			  '#type' => 'select',
@@ -76,6 +73,7 @@ ksm($default_value);
 						'webcvs' => 'Convenience Store (webcvs)',
 						'unionpay' => 'Unionpay (unionpay)',
 						'paypal' => 'Paypal (paypal)',
+						'alipay' => 'Alipay (alipay)',
 			  ),
 			];
 
@@ -112,8 +110,14 @@ ksm($default_value);
 		$this->configuration['merchant_id'] = $values['merchant_id'];
 		$this->configuration['service_id'] = $values['service_id'];
 		$this->configuration['hashkey'] = $values['hashkey'];
+	}
 
-	//	$this->order->setData('method_type',$values['method_type']);
+
+	/**
+	* {@inheritdoc}
+	*/
+	public function onCancel(OrderInterface $order, Request $request) {
+		ksm($request);
 	}
 
 	/**
@@ -139,9 +143,9 @@ ksm($default_value);
 		$pc = \Drupal::service('payment_asp.PaymentASPController');
 		
 		// Response from SBPS is always JPY
-    $price = new Price($request->get('amount'), 'JPY');
-    // Convert to current currency
-    $amount = $pc->currencyConverter($price, $pc->getCurrentCurrency());
+	    $price = new Price($request->get('amount'), 'JPY');
+	    // Convert to current currency
+	    $amount = $pc->currencyConverter($price, $pc->getCurrentCurrency());
 
 		$payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
 		$payment = $payment_storage->create([
@@ -156,16 +160,15 @@ ksm($default_value);
 		]);
 		$payment->save();
 		if ($request->get('res_result') == 'OK') {
-       // Save to database
-       $query = \Drupal::database();
-       $query->insert('payment_asp_pd')
-             ->fields(array(
+			// Save to database
+			$query = \Drupal::database();
+			$query->insert('payment_asp_pd')
+			    	->fields(array(
 					     'p_fk_id' => $payment->id(),
 					     'tracking_id' => (string) $request->get('res_tracking_id'),
 					     'sps_transaction_id' => (int) $request->get('res_sps_transaction_id'),
 					     'processing_datetime' => (int) $request->get('res_process_date'),
-             ))
-             ->execute();
+             ))->execute();
 		} else if ($request->get('res_result') == 'NG') {
 
 		}
@@ -177,8 +180,7 @@ ksm($default_value);
 	* Gets the order data from Controller
 	*/
 	public function getOrderData(PaymentInterface $payment) {
-//    $languageCheck = \Drupal::service('payment_asp.languageCheck');
-        $pc = \Drupal::service('payment_asp.PaymentASPController');
+    	$pc = \Drupal::service('payment_asp.PaymentASPController');
 		$current_uri = \Drupal::request()->getRequestUri();
 		date_default_timezone_set('Japan');
 
@@ -188,6 +190,7 @@ ksm($default_value);
 		$orderData = $pc->getOrderDetails($order);
         $givenName = $order->getData("billing_profile_givenName");
         $familyName = $order->getData("billing_profile_familyName");
+        // Optional payment gateway paramater
 		$payment_gateway_parameter = $order->getData("payment_gateway_parameter");
 		// $paymentGateway = $payment->getPaymentGateway()->id();
 
@@ -252,9 +255,32 @@ ksm($default_value);
 			"hashkey"			=> $this->configuration['hashkey'],
 		];
 
+		// if (count($orderData['orderDetail']) > 1 && FALSE) {
+		// 	for ($i=0; $i != sizeof($orderData['orderDetail']); $i++) { 
+		// 		$postdata['dtl_rowno'][$i] = $orderData['orderDetail'][$i]["dtl_rowno"];
+		// 		$postdata['dtl_item_id'][$i] = $orderData['orderDetail'][$i]["dtl_item_id"];
+		// 		$postdata['dtl_item_name'][$i] = $orderData['orderDetail'][$i]["dtl_item_name"];
+		// 		$postdata['dtl_item_count'][$i] = $orderData['orderDetail'][$i]["dtl_item_count"];
+		// 		$postdata['dtl_tax'][$i] = $orderData['orderDetail'][$i]["dtl_tax"];
+		// 		$postdata['dtl_amount'][$i] = $orderData['orderDetail'][$i]["dtl_amount"];
+		// 	}
+		// } else {
+		// 	$postdata['dtl_rowno'][0] = $orderData['orderDetail'][0]["dtl_rowno"];
+		// 	$postdata['dtl_item_id'][0] = $orderData['orderDetail'][0]["dtl_item_id"];
+		// 	$postdata['dtl_item_name'][0] = $orderData['orderDetail'][0]["dtl_item_name"];
+		// 	$postdata['dtl_item_count'][0] = $orderData['orderDetail'][0]["dtl_item_count"];
+		// 	$postdata['dtl_tax'][0] = $orderData['orderDetail'][0]["dtl_tax"];
+		// 	$postdata['dtl_amount'][0] = '2';
+		// }
+		// $last_postdata = [
+		// 	'request_date'		=> date("YmdGis"),
+		// 	"limit_second"		=> "",
+		// 	"hashkey"			=> $this->configuration['hashkey'],
+		// ];
+		// $postdata = array_merge($postdata, $last_postdata);
+
 		// Check each parameter if Japanese/Chinese character
 		foreach ($postdata as $key => $value) {
- 	//		if (   $languageCheck->isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
 			if (\Drupal\payment_asp\languageCheck::isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
 				$postdata[$key] = base64_encode($postdata[$key]);
 			}
