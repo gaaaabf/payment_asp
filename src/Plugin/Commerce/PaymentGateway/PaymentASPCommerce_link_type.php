@@ -123,13 +123,6 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	/**
 	* {@inheritdoc}
 	*/
-	public function onCancel(OrderInterface $order, Request $request) {
-		ksm($request);
-	}
-
-	/**
-	* {@inheritdoc}
-	*/
 	public function onReturn(OrderInterface $order, Request $request) {
 		die('kaning');
 		ksm($request);
