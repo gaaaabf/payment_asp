@@ -107,9 +107,11 @@ class PaymentASPController extends ControllerBase {
     $items = $order->getItems();
 
     for ($i=0; $i != count($items); $i++) { 
-      $perItem['dtl_rowno'] = $i+1;
+      $item_price = $items[$i]->getUnitPrice();
+      $perItem['dtl_rowno'] = (int) $i+1;
       $perItem['dtl_item_id'] = $items[$i]->id();
       $perItem['dtl_item_name'] = $items[$i]->label();
+      $perItem['dtl_amount'] = (int) $this->currencyConverter($item_price, 'JPY');
       $perItem['dtl_item_count'] = (int)$items[$i]->getQuantity();
 
       $taxEntity = $items[$i]->getAdjustments(array('tax'));
