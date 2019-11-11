@@ -19,7 +19,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\commerce_price\Price;
 
 
-
 /**
  * Provides the Payment ASP gateway.
  *
@@ -173,7 +172,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* Gets the order data from Controller
 	*/
 	public function getOrderData(PaymentInterface $payment) {
-    	$pc = \Drupal::service('payment_asp.PaymentASPController');
+    $pc = \Drupal::service('payment_asp.PaymentASPController');
 		$current_uri = \Drupal::request()->getRequestUri();
 		date_default_timezone_set('Japan');
 
@@ -181,9 +180,9 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		$order = $payment->getOrder();
 		// Common order data parameters
 		$orderData = $pc->getOrderDetails($order);
-        $givenName = $order->getData("billing_profile_givenName");
-        $familyName = $order->getData("billing_profile_familyName");
-        // Optional payment gateway paramater
+    $givenName = $order->getData("billing_profile_givenName");
+    $familyName = $order->getData("billing_profile_familyName");
+    // Optional payment gateway paramater
 		$payment_gateway_parameter = $order->getData("payment_gateway_parameter");
 		// $paymentGateway = $payment->getPaymentGateway()->id();
 
@@ -274,7 +273,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 
 		// Check each parameter if Japanese/Chinese character
 		foreach ($postdata as $key => $value) {
-			if (\Drupal\payment_asp\languageCheck::isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
+			if (\Drupal::service('payment_asp.languageCheck')->isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
 				$postdata[$key] = base64_encode($postdata[$key]);
 			}
 		}
