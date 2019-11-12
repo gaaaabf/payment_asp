@@ -264,8 +264,7 @@ ksm('buildConfigurationSummary');
         $this->messenger()->addError($message);
         $this->checkoutFlow->redirectToStep($error_step_id);
       }
-      $id = $this->order->id();
-      $order = \Drupal\commerce_order\Entity\Order::load($id);
+      $order = \Drupal\commerce_order\Entity\Order::load($this->order->id());
       $order->unlock();
       $order->save();
       return $pane_form;
