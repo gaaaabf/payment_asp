@@ -212,24 +212,32 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
       $pane_form = $this->buildPaymentMethodForm($pane_form, $form_state, $default_option);
     } elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
-      if ($default_option->getId() == 'offsite') {
+
+      $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
+      
+      if ($payment_gateway->get('configuration')['method_type'] == 'offsite') {
         $pane_form['fieldset'] = [
          '#title' => t($default_option->getId()),
          '#type' => 'textfield',
          '#default_value' => '',
         ];
-      } elseif ($default_option->getId() == 'webcvs') {
+      } elseif ($payment_gateway->get('configuration')['method_type'] == 'webcvs') {
         $pane_form['fieldset'] = [
           '#title' => t('Telphone'),
           '#type' => 'textfield',
-          '#default_value' => ' ',
+          '#default_value' => '',
           '#weight' => 0,
           '#maxlength' => '12',
           '#size' => '20',
           '#required' => TRUE,
         ];
+        
       }
     }
+
+    //------------------------------------  TEST -------------------------
+ ksm($this->order);  
+
     return $pane_form;
   }
 

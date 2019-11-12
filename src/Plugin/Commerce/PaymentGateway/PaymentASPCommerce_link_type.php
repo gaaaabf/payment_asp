@@ -18,7 +18,7 @@ use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsNotifications
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\commerce_price\Price;
 
-
+use Drupal\Core\Url;
 /**
  * Provides the Payment ASP gateway.
  *
@@ -116,6 +116,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* {@inheritdoc}
 	*/
 	public function onCancel(OrderInterface $order, Request $request) {
+		\Drupal::logger('payment_asp')->notice($request);
 		ksm($request);
 	}
 
@@ -123,7 +124,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* {@inheritdoc}
 	*/
 	public function onReturn(OrderInterface $order, Request $request) {
-		die('kaning');
+		\Drupal::logger('payment_asp')->notice($request);
 		ksm($request);
 	}
 
@@ -132,59 +133,111 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	*/
 	public function onNotify(Request $request) {
 		\Drupal::logger('payment_asp')->notice($request);
-		$pc = \Drupal::service('payment_asp.PaymentASPController');
 		
-		// Response from SBPS is always JPY
-	    $amount = new Price($request->get('amount'), 'JPY');
+		// if($request->isMethod('POST')){
+		// 	 $json = new JsonResponse();
+	 	//   return $json->setJson(OK);
+		// }
 
-		$payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-		$payment = $payment_storage->create([
-		  'state' => 'completed',
-		  'amount' => $amount,
-		  'payment_gateway' => $this->entityId,
-		  'order_id' => $request->get('order_id'),
-		  'test' => $this->getMode() == 'test',
-		  'remote_id' => $request->get('res_tracking_id'),
-		  'remote_state' => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
-		  'authorized' => $this->time->getRequestTime(),
-		]);
-		$payment->save();
-		if ($request->get('res_result') == 'OK') {
-			// Save to database
-			$query = \Drupal::database();
-			$query->insert('payment_asp_pd')
-			    	->fields(array(
-					     'p_fk_id' => $payment->id(),
-					     'tracking_id' => (string) $request->get('res_tracking_id'),
-					     'sps_transaction_id' => (int) $request->get('res_sps_transaction_id'),
-					     'processing_datetime' => (int) $request->get('res_process_date'),
-             ))->execute();
-		} else if ($request->get('res_result') == 'NG') {
+		
 
-		}
+		// $pc = \Drupal::service('payment_asp.PaymentASPController');
+		
+		// // Response from SBPS is always JPY
+	 $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+	
+	 if($request->get('res_result') == 'OK'){
+		  	$payment = $payment_storage->create([
+			  'state' 			=> 'pending',
+			  'amount' 			=>  new Price('0','JPY'),
+			  'payment_gateway' => $this->entityId,
+			  'order_id' 		=> $request->get('order_id'),
+			  'test' 			=> $this->getMode() == 'test',
+			  'remote_id'		=> $request->get('res_tracking_id'),
+			  'remote_state'	=> empty($request->get('res_err_code')) ? 'pending' : $request->get('res_err_code'),
+			  'authorized'		=> $this->time->getRequestTime(),
+			]);
+			$payment->save();
 
-		return new JsonResponse('OK keeyoh');
+			$order = \Drupal\commerce_order\Entity\Order::load($request->get('order_id'));
+            $order->lock();
+            $order->set('state', 'completed', $notify = false);
+            $order->save();
+      }
+       	 
+		 elseif($request->get('res_result') == 'PY'){
+
+     		 $pay_info_key 			=  $request->get('res_payinfo_key');
+ 			 $res_payinfo_key_arr   =  explode(',', $pay_info_key);
+    		 $res_code 				=  $res_payinfo_key_arr[0];
+    		 $res_amount_deposit    =  $res_payinfo_key_arr[1];
+    		 $res_amount_cumulative =  $res_payinfo_key_arr[2];
+			 $res_email             =  $res_payinfo_key_arr[3];
+		    		
+		  	$payment = $payment_storage->create([
+			  'state' 		    => 'completed',
+			  'amount'	        => new Price($res_amount_deposit,'JPY'),
+			  'payment_gateway' => $this->entityId,
+			  'order_id' 		=> $request->get('order_id'),
+			  'test' 			=> $this->getMode() == 'test',
+			  'remote_id'		=> $request->get('res_tracking_id'),
+			  'remote_state' 	=> empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
+			  'authorized' 		=> $this->time->getRequestTime(),
+			]);
+			$payment->save();
+       }
+       elseif($request->get('res_result') == 'CN'){
+
+       		$order = \Drupal\commerce_order\Entity\Order::load($request->get('order_id'));
+            $order->delete(); 
+            // $order->save();	
+
+       }
+       $json = new JsonResponse();
+	  	return $json->setJson(OK);
+      
 	}
+
+
+	/**
+	* {@inheritdoc}
+	*/
+	public function getReturnUrl($id = NULL) {
+		$order_id = \Drupal::service('payment_asp.PaymentASPController')->getOrderIdByURI();
+
+		// $order = $payment->getOrder;
+		// $id = $order->id();
+
+		return Url::fromRoute('commerce_payment.checkout.return', [
+		  'commerce_order' => $id,
+		  'step' => 'payment',
+		], ['absolute' => TRUE]);
+	}
+
 
 	/**
 	* Gets the order data from Controller
 	*/
 	public function getOrderData(PaymentInterface $payment) {
+	$payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
+
     $pc = \Drupal::service('payment_asp.PaymentASPController');
-		$current_uri = \Drupal::request()->getRequestUri();
-		date_default_timezone_set('Japan');
+	$current_uri = \Drupal::request()->getRequestUri();
+	date_default_timezone_set('Japan');
 
 		// Order data from database
-		$order = $payment->getOrder();
+	$order = $payment->getOrder();
+	$id = $order->id();
+//ksm($id);	
 		// Common order data parameters
-		$orderData = $pc->getOrderDetails($order);
+	$orderData = $pc->getOrderDetails($order);
     $givenName = $order->getData("billing_profile_givenName");
     $familyName = $order->getData("billing_profile_familyName");
     // Optional payment gateway paramater
-		$payment_gateway_parameter = $order->getData("payment_gateway_parameter");
+	$payment_gateway_parameter = $order->getData("payment_gateway_parameter");
 		// $paymentGateway = $payment->getPaymentGateway()->id();
-
-		switch ($this->configuration['method_type']) {
+	$price = new Price("111","JPY");
+	switch ($this->configuration['method_type']) {
 			case 'webcvs':
 				$free_csv = "LAST_NAME=" . $familyName . ",FIRST_NAME=" . $givenName . ",MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter;		
 				break;
@@ -209,7 +262,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"cust_code"			=> $orderData['cust_code'],
 			"sps_cust_no"		=> "",
 			"sps_payment_no"	=> "",
-			"order_id"			=> $orderData['order_id'].date("YmdGis"),
+			"order_id"			=> $orderData['order_id'],
 			"item_id"			=> $orderData['orderDetail'][0]["dtl_item_id"],
 			"pay_item_id"		=> "",
 			"item_name"			=> $orderData['orderDetail'][0]["dtl_item_name"],
@@ -223,7 +276,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"camp_type"			=> "",
 			"tracking_id"		=> "",
 			"terminal_type"		=> "0",
-			"success_url"		=> $this->getNotifyUrl()->toString(),
+			"success_url"		=> $this->getReturnUrl($id)->toString(),
 			"cancel_url"		=> "",
 			"error_url"			=> "",
 			"pagecon_url"		=> $this->getNotifyUrl()->toString(),
@@ -236,7 +289,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			'dtl_item_name'		=> $orderData['orderDetail'][0]["dtl_item_name"],
 			'dtl_item_count'	=> $orderData['orderDetail'][0]["dtl_item_count"],
 			'dtl_tax'			=> $orderData['orderDetail'][0]["dtl_tax"],
-			'dtl_amount'		=> $orderData['orderDetail'][0]["dtl_amount"],
+			'dtl_amount'		=> "11",//$orderData['orderDetail'][0]["dtl_amount"],
 			'dtl_free1'			=> $orderData['orderDetail'][0]["dtl_free1"],
 			'dtl_free2'			=> $orderData['orderDetail'][0]["dtl_free2"],
 			'dtl_free3'			=> $orderData['orderDetail'][0]["dtl_free3"],
@@ -245,32 +298,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"hashkey"			=> $this->configuration['hashkey'],
 		];
 
-		// if (count($orderData['orderDetail']) > 1 && FALSE) {
-		// 	for ($i=0; $i != sizeof($orderData['orderDetail']); $i++) { 
-		// 		$postdata['dtl_rowno'][$i] = $orderData['orderDetail'][$i]["dtl_rowno"];
-		// 		$postdata['dtl_item_id'][$i] = $orderData['orderDetail'][$i]["dtl_item_id"];
-		// 		$postdata['dtl_item_name'][$i] = $orderData['orderDetail'][$i]["dtl_item_name"];
-		// 		$postdata['dtl_item_count'][$i] = $orderData['orderDetail'][$i]["dtl_item_count"];
-		// 		$postdata['dtl_tax'][$i] = $orderData['orderDetail'][$i]["dtl_tax"];
-		// 		$postdata['dtl_amount'][$i] = $orderData['orderDetail'][$i]["dtl_amount"];
-		// 	}
-		// } else {
-		// 	$postdata['dtl_rowno'][0] = $orderData['orderDetail'][0]["dtl_rowno"];
-		// 	$postdata['dtl_item_id'][0] = $orderData['orderDetail'][0]["dtl_item_id"];
-		// 	$postdata['dtl_item_name'][0] = $orderData['orderDetail'][0]["dtl_item_name"];
-		// 	$postdata['dtl_item_count'][0] = $orderData['orderDetail'][0]["dtl_item_count"];
-		// 	$postdata['dtl_tax'][0] = $orderData['orderDetail'][0]["dtl_tax"];
-		// 	$postdata['dtl_amount'][0] = '2';
-		// }
-		// $last_postdata = [
-		// 	'request_date'		=> date("YmdGis"),
-		// 	"limit_second"		=> "",
-		// 	"hashkey"			=> $this->configuration['hashkey'],
-		// ];
-		// $postdata = array_merge($postdata, $last_postdata);
-
-		// Check each parameter if Japanese/Chinese character
-		foreach ($postdata as $key => $value) {
+	foreach ($postdata as $key => $value) {
 			if (\Drupal::service('payment_asp.languageCheck')->isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
 				$postdata[$key] = base64_encode($postdata[$key]);
 			}
