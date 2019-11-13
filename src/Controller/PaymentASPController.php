@@ -40,11 +40,10 @@ class PaymentASPController extends ControllerBase {
     $orderDetail = [];
     $perItem = [];
     $items = $order->getItems();
-
     for ($i=0; $i != count($items); $i++) { 
-      $item_price = $items[$i]->getUnitPrice();
+      $item_price = $items[$i]->getUnitPrice()->getNumber();
       $perItem['dtl_rowno'] = (int) $i+1;
-      $perItem['dtl_item_id'] = $items[$i]->id();
+      $perItem['dtl_item_id'] = $items[$i]->getPurchasedEntity()->getProductId();
       $perItem['dtl_item_name'] = $items[$i]->label();
       $perItem['dtl_amount'] = number_format((float)$item_price, 0, '.', '');
       $perItem['dtl_item_count'] = (int)$items[$i]->getQuantity();
@@ -60,11 +59,11 @@ class PaymentASPController extends ControllerBase {
       array_push($orderDetail, $perItem);
       // $orderDetail['orderDetail'.$i] = $perItem;
     }
-
+    
     $data_needed = array(
       'order_id' => $order_id,
       'cust_code' => $order->getCustomer()->getDisplayName(),
-      'amount' => number_format((float)$order->getTotalPrice(), 0, '.', ''),
+      'amount' => number_format((float)$order->getTotalPrice()->getNumber(), 0, '.', ''),
       'tax' => $perItem['dtl_tax'],
       'orderDetail' => $orderDetail,
       // No value as for the moment

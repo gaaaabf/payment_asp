@@ -212,14 +212,19 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
       $pane_form = $this->buildPaymentMethodForm($pane_form, $form_state, $default_option);
     } elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
-
       $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
-      
       if ($payment_gateway->get('configuration')['method_type'] == 'offsite') {
         $pane_form['fieldset'] = [
-         '#title' => t($default_option->getId()),
-         '#type' => 'textfield',
-         '#default_value' => '',
+          '#title' => t($default_option->getId()),
+          '#type' => 'textfield',
+          '#default_value' => '',
+
+        ];
+      } elseif ($payment_gateway->get('configuration')['method_type'] == 'credit3d') {
+        $pane_form['fieldset'] = [
+          '#type' => 'markup',
+          '#markup' => t('<b>Note:</b> Installment payment is only available for amounts 10,000 above'),
+          '#weight' => 0,
         ];
       } elseif ($payment_gateway->get('configuration')['method_type'] == 'webcvs') {
         $pane_form['fieldset'] = [
@@ -234,10 +239,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         
       }
     }
-
-    //------------------------------------  TEST -------------------------
- ksm($this->order);  
-
+    
     return $pane_form;
   }
 
