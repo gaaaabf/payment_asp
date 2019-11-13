@@ -178,7 +178,8 @@ ksm('buildConfigurationSummary');
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = $payment_storage->create([
-      'state' => 'draft',//'new',
+  //  'state' => 'new',
+      'state' => 'draft',
       'amount' => $this->order->getBalance(),
       'payment_gateway' => $payment_gateway->id(),
       'order_id' => $this->order->id(),
@@ -264,9 +265,12 @@ ksm('buildConfigurationSummary');
         $this->messenger()->addError($message);
         $this->checkoutFlow->redirectToStep($error_step_id);
       }
+
+      // To avoid locking order upon payment
       $order = \Drupal\commerce_order\Entity\Order::load($this->order->id());
       $order->unlock();
       $order->save();
+      
       return $pane_form;
     }
 
