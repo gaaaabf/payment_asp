@@ -315,21 +315,27 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       "free2"       => "",
       "free3"       => "",
       "free_csv"      => isset($free_csv) ? $free_csv : '', 
-      'dtl_rowno'     => $orderData['orderDetail'][0]["dtl_rowno"],
-      'dtl_item_id'   => $orderData['orderDetail'][0]["dtl_item_id"],
-      'dtl_item_name'   => $orderData['orderDetail'][0]["dtl_item_name"],
-      'dtl_item_count'  => $orderData['orderDetail'][0]["dtl_item_count"],
-      'dtl_tax'     => $orderData['orderDetail'][0]["dtl_tax"],
-      'dtl_amount'    => $orderData['orderDetail'][0]["dtl_amount"],
-      'dtl_free1'     => $orderData['orderDetail'][0]["dtl_free1"],
-      'dtl_free2'     => $orderData['orderDetail'][0]["dtl_free2"],
-      'dtl_free3'     => $orderData['orderDetail'][0]["dtl_free3"],
+      // 'dtl_rowno'     => $orderData['orderDetail'][0]["dtl_rowno"],
+      // 'dtl_item_id'   => $orderData['orderDetail'][0]["dtl_item_id"],
+      // 'dtl_item_name'   => $orderData['orderDetail'][0]["dtl_item_name"],
+      // 'dtl_item_count'  => $orderData['orderDetail'][0]["dtl_item_count"],
+      // 'dtl_tax'     => $orderData['orderDetail'][0]["dtl_tax"],
+      // 'dtl_amount'    => $orderData['orderDetail'][0]["dtl_amount"],
+      // 'dtl_free1'     => $orderData['orderDetail'][0]["dtl_free1"],
+      // 'dtl_free2'     => $orderData['orderDetail'][0]["dtl_free2"],
+      // 'dtl_free3'     => $orderData['orderDetail'][0]["dtl_free3"],
+      'orderDetail'     => $orderData['orderDetail'],      
+      // 'request_date'    => date("YmdGis"),
+      // "limit_second"    => "",
+      // "hashkey"     => $this->configuration['hashkey'],
+    ];
+    $postdata['lastPiece'] = [
       'request_date'    => date("YmdGis"),
-      "limit_second"    => "",
-      "hashkey"     => $this->configuration['hashkey'],
+      'limit_second'    => "",
+      'hashkey'     => $this->configuration['hashkey'],
     ];
 
-    // if (count($orderData['orderDetail']) > 1 && FALSE) {
+    // if (count($orderData['orderDetail']) > 1) {
     //  for ($i=0; $i != sizeof($orderData['orderDetail']); $i++) { 
     //    $postdata['dtl_rowno'][$i] = $orderData['orderDetail'][$i]["dtl_rowno"];
     //    $postdata['dtl_item_id'][$i] = $orderData['orderDetail'][$i]["dtl_item_id"];

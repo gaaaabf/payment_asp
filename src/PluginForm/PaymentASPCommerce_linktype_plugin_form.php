@@ -21,29 +21,57 @@ class PaymentASPCommerce_linktype_plugin_form extends BasePaymentOffsiteForm {
 		$payment_gateway_plugin = $payment->getPaymentGateway()->getPlugin();
 		$postdata = $payment_gateway_plugin->getOrderData($payment);
 		
-		// Set URL
-		// $postdata["success_url"] = $form['#return_url'];
+		// Set ERROR URL
 		$postdata["cancel_url"] = $form['#cancel_url'];
 		$postdata["error_url"] = $form['#cancel_url'];
-		// $postdata["pagecon_url"] = "http://localhost/latestmultty/payment/notify/payment_asp_link_type";
+
+		// Divide array into three
+		foreach ($postdata as $key => $value) {
+		    if ($key == 'lastPiece') {
+					$part3[$key] = $value;
+		    } elseif ($key == 'orderDetail') {
+					$part2[$key] = $value;
+		    } else {
+	        $part1[$key] = $value;
+		    }
+		}
 
 
 		// Convert to UTF-8
 		$postdata = mb_convert_encoding($postdata, 'Shift_JIS', 'UTF-8');
-		// Concatenate each value
-		$sps_hashcode = (String) implode('', $postdata);
+
+		// Concatenate part1
+		$sps_hashcode1 = (String) implode('', $part1);
+		// Concatenate part2
+		for ($i=0; $i != count($part2['orderDetail']) ; $i++) { 
+			$toAppend = (String) implode('', $part2['orderDetail'][$i]);
+			$sps_hashcode2 = $sps_hashcode2.$toAppend;
+		}
+		// Concatenate part3
+		$sps_hashcode3 = (String) implode('', $part3['lastPiece']);
+
+		// All parts concatendated
+		$sps_hashcode = $sps_hashcode1.$sps_hashcode2.$sps_hashcode3;
 		// Hashkey generation using sha1
 		$sps_hashcode = sha1($sps_hashcode);
+
+		unset($postdata['lastPiece']);
+		
+		$postdata['request_date'] = $part3['lastPiece']['request_date'];
+		$postdata['limit_second'] = $part3['lastPiece']['limit_second'];
+		$postdata['hashkey'] = $part3['lastPiece']['hashkey'];
+
 		// Adding hashkey to parameters to be passed
 		$postdata['sps_hashcode'] = $sps_hashcode;
 
+		// die(var_dump($postdata));
 		return $this->buildRedirectForm(
 			$form,
 			$form_state,
 			// 'https://stbfep.sps-system.com/Extra/PayRequestAction.do',
-			// 'https://stbfep.sps-system.com/Extra/BuyRequestAction.do',
+			'https://stbfep.sps-system.com/Extra/BuyRequestAction.do',
 			// 'https://stbfep.sps-system.com/f04/FepPayInfoReceive.do',
-			'https://stbfep.sps-system.com/f01/FepBuyInfoReceive.do',
+			// 'https://stbfep.sps-system.com/f01/FepBuyInfoReceive.do',
 			$postdata,
 			'post'
 		);

@@ -47,6 +47,10 @@ class PaymentASPController extends ControllerBase {
       $perItem['dtl_item_name'] = $items[$i]->label();
       $perItem['dtl_amount'] = number_format((float)$item_price, 0, '.', '');
       $perItem['dtl_item_count'] = (int)$items[$i]->getQuantity();
+      // No value as for the moment
+      $perItem['dtl_free1'] = ''; 
+      $perItem['dtl_free2'] = ''; 
+      $perItem['dtl_free3'] = ''; 
 
       $taxEntity = $items[$i]->getAdjustments(array('tax'));
       if($taxEntity[0] == NULL){
@@ -66,10 +70,6 @@ class PaymentASPController extends ControllerBase {
       'amount' => number_format((float)$order->getTotalPrice()->getNumber(), 0, '.', ''),
       'tax' => $perItem['dtl_tax'],
       'orderDetail' => $orderDetail,
-      // No value as for the moment
-      'dtl_free1' => '',
-      'dtl_free2' => '',
-      'dtl_free3' => '',
     );
 
     return $data_needed;
