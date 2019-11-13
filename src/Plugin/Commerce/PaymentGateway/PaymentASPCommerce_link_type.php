@@ -17,6 +17,8 @@ use Symfony\Component\Serializer\Serializer;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsNotificationsInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\commerce_price\Price;
+use Drupal\Core\Url;
+
 
 
 /**
@@ -102,6 +104,17 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	/**
 	* {@inheritdoc}
 	*/
+	public function getReturnUrl() {
+		$order_id = \Drupal::service('payment_asp.PaymentASPController')->getOrderIdByURI();
+		return Url::fromRoute('commerce_payment.checkout.return', [
+		  'commerce_order' => $order_id,
+		  'step' => 'payment',
+		], ['absolute' => TRUE]);
+	}
+
+	/**
+	* {@inheritdoc}
+	*/
 	public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
 		parent::submitConfigurationForm($form, $form_state);
 		$values = $form_state->getValue($form['#parents']);
@@ -123,7 +136,6 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* {@inheritdoc}
 	*/
 	public function onReturn(OrderInterface $order, Request $request) {
-		die('kaning');
 		ksm($request);
 	}
 
@@ -131,39 +143,56 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* {@inheritdoc}
 	*/
 	public function onNotify(Request $request) {
+		$connection = \Drupal::database();
 		\Drupal::logger('payment_asp')->notice($request);
-		$pc = \Drupal::service('payment_asp.PaymentASPController');
-		
-		// Response from SBPS is always JPY
-	    $amount = new Price($request->get('amount'), 'JPY');
-
 		$payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-		$payment = $payment_storage->create([
-		  'state' => 'completed',
-		  'amount' => $amount,
-		  'payment_gateway' => $this->entityId,
-		  'order_id' => $request->get('order_id'),
-		  'test' => $this->getMode() == 'test',
-		  'remote_id' => $request->get('res_tracking_id'),
-		  'remote_state' => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
-		  'authorized' => $this->time->getRequestTime(),
-		]);
-		$payment->save();
+
 		if ($request->get('res_result') == 'OK') {
-			// Save to database
-			$query = \Drupal::database();
-			$query->insert('payment_asp_pd')
+			$tracking_id = $request->get('res_tracking_id');
+			$check_tracking_id = $connection->select('payment_asp_pd', 'tracking_id')->fields('tracking_id', ['tracking_id'])->condition('tracking_id', $tracking_id, '=')->execute()->fetchAll();
+
+			if (count($check_tracking_id) > 0) {
+				$connection->update('commerce_payment')
+						->condition('remote_id', $tracking_id, '=')
+					  ->fields(['state' => 'completed'])
+						->execute();
+			} else {
+				$payment = $payment_storage->create([
+				  'state' => 'completed',
+				  'amount' => new Price($request->get('amount'), 'JPY'),
+				  'payment_gateway' => $this->entityId,
+				  'order_id' => $request->get('order_id'),
+				  'test' => $this->getMode() == 'test',
+				  'remote_id' => $request->get('res_tracking_id'),
+				  'remote_state' => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
+				  'authorized' => $this->time->getRequestTime(),
+				]);
+				$payment->save();
+				// Save to database
+				$connection->insert('payment_asp_pd')
 			    	->fields(array(
 					     'p_fk_id' => $payment->id(),
 					     'tracking_id' => (string) $request->get('res_tracking_id'),
 					     'sps_transaction_id' => (int) $request->get('res_sps_transaction_id'),
 					     'processing_datetime' => (int) $request->get('res_process_date'),
-             ))->execute();
-		} else if ($request->get('res_result') == 'NG') {
-
+	           ))->execute();
+			}
+		} elseif ($request->get('res_result') == 'NG') {
+				$payment = $payment_storage->create([
+				  'state' => 'failed',
+				  'amount' => new Price($request->get('amount'), 'JPY'),
+				  'payment_gateway' => $this->entityId,
+				  'order_id' => $request->get('order_id'),
+				  'test' => $this->getMode() == 'test',
+				  'remote_id' => $request->get('res_tracking_id'),
+				  'remote_state' => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
+				  'authorized' => $this->time->getRequestTime(),
+				]);
+				$payment->save();
 		}
 
-		return new JsonResponse('OK keeyoh');
+		$json = new JsonResponse();
+		return $json->setJson(OK,);
 	}
 
 	/**
@@ -190,13 +219,14 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 				break;
 			case 'credit3d':
 				// $payment_gateway_parameter  = (int) $order->getData("payment_gateway_parameter");
-				// if ($divide_times > 1) {
-				// 	$currentDate = date('Ym');
-				// 	$pay_type = 1;
-				// 	$auto_charge_type = 1;
-				// 	$div_settele = 0;
-				// 	$last_charge_month = $currentDate;
-				// }
+				if (FALSE) {
+					$currentDate = date('Ym', strtotime("+3 months", strtotime($currentDate)));
+					$pay_type = 1;
+					$auto_charge_type = 1;
+					$div_settele = 0;
+					$last_charge_month = $currentDate;
+					$camp_type = 1;
+				}
 				break;
 			case 'unionpay':
 				break;
@@ -209,7 +239,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"cust_code"			=> $orderData['cust_code'],
 			"sps_cust_no"		=> "",
 			"sps_payment_no"	=> "",
-			"order_id"			=> $orderData['order_id'].date("YmdGis"),
+			"order_id"			=> $orderData['order_id'].date("Ys"),
 			"item_id"			=> $orderData['orderDetail'][0]["dtl_item_id"],
 			"pay_item_id"		=> "",
 			"item_name"			=> $orderData['orderDetail'][0]["dtl_item_name"],
@@ -220,10 +250,10 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"service_type"		=> "0",
 			"div_settele"		=> isset($div_settele) ? $div_settele : "",
 			"last_charge_month"	=> isset($last_charge_month) ? $last_charge_month : "",
-			"camp_type"			=> "",
+			"camp_type"			=> isset($camp_type) ? $camp_type : "",
 			"tracking_id"		=> "",
 			"terminal_type"		=> "0",
-			"success_url"		=> $this->getNotifyUrl()->toString(),
+			"success_url"		=> $this->getReturnUrl()->toString(),
 			"cancel_url"		=> "",
 			"error_url"			=> "",
 			"pagecon_url"		=> $this->getNotifyUrl()->toString(),
@@ -245,6 +275,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"hashkey"			=> $this->configuration['hashkey'],
 		];
 
+		// die(var_dump($postdata));
 		// if (count($orderData['orderDetail']) > 1 && FALSE) {
 		// 	for ($i=0; $i != sizeof($orderData['orderDetail']); $i++) { 
 		// 		$postdata['dtl_rowno'][$i] = $orderData['orderDetail'][$i]["dtl_rowno"];
