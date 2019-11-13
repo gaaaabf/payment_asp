@@ -296,7 +296,8 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       "order_id"      => $orderData['order_id'].date("Ys"),
       "item_id"     => $orderData['orderDetail'][0]["dtl_item_id"],
       "pay_item_id"   => "",
-      "item_name"     => $orderData['orderDetail'][0]["dtl_item_name"],
+      "item_name"     => "",
+      // "item_name"     => $orderData['orderDetail'][0]["dtl_item_name"],
       "tax"       => $orderData['tax'],
       "amount"      => $orderData['amount'],
       "pay_type"      => isset($pay_type) ? $pay_type : "0",
@@ -314,44 +315,21 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       "free1"       => "",
       "free2"       => "",
       "free3"       => "",
-      "free_csv"      => isset($free_csv) ? $free_csv : '', 
-      'dtl_rowno'     => $orderData['orderDetail'][0]["dtl_rowno"],
-      'dtl_item_id'   => $orderData['orderDetail'][0]["dtl_item_id"],
-      'dtl_item_name'   => $orderData['orderDetail'][0]["dtl_item_name"],
-      'dtl_item_count'  => $orderData['orderDetail'][0]["dtl_item_count"],
-      'dtl_tax'     => $orderData['orderDetail'][0]["dtl_tax"],
-      'dtl_amount'    => $orderData['orderDetail'][0]["dtl_amount"],
-      'dtl_free1'     => $orderData['orderDetail'][0]["dtl_free1"],
-      'dtl_free2'     => $orderData['orderDetail'][0]["dtl_free2"],
-      'dtl_free3'     => $orderData['orderDetail'][0]["dtl_free3"],
+      "free_csv"      => isset($free_csv) ? $free_csv : '',
+      // Will not be using this for now
+      // 'dtl_rowno'     => $orderData['orderDetail'][0]["dtl_rowno"],
+      // 'dtl_item_id'   => $orderData['orderDetail'][0]["dtl_item_id"],
+      // 'dtl_item_name'   => $orderData['orderDetail'][0]["dtl_item_name"],
+      // 'dtl_item_count'  => $orderData['orderDetail'][0]["dtl_item_count"],
+      // 'dtl_tax'     => $orderData['orderDetail'][0]["dtl_tax"],
+      // 'dtl_amount'    => $orderData['orderDetail'][0]["dtl_amount"],
+      // 'dtl_free1'     => $orderData['orderDetail'][0]["dtl_free1"],
+      // 'dtl_free2'     => $orderData['orderDetail'][0]["dtl_free2"],
+      // 'dtl_free3'     => $orderData['orderDetail'][0]["dtl_free3"],
       'request_date'    => date("YmdGis"),
       "limit_second"    => "",
       "hashkey"     => $this->configuration['hashkey'],
     ];
-
-    // if (count($orderData['orderDetail']) > 1 && FALSE) {
-    //  for ($i=0; $i != sizeof($orderData['orderDetail']); $i++) { 
-    //    $postdata['dtl_rowno'][$i] = $orderData['orderDetail'][$i]["dtl_rowno"];
-    //    $postdata['dtl_item_id'][$i] = $orderData['orderDetail'][$i]["dtl_item_id"];
-    //    $postdata['dtl_item_name'][$i] = $orderData['orderDetail'][$i]["dtl_item_name"];
-    //    $postdata['dtl_item_count'][$i] = $orderData['orderDetail'][$i]["dtl_item_count"];
-    //    $postdata['dtl_tax'][$i] = $orderData['orderDetail'][$i]["dtl_tax"];
-    //    $postdata['dtl_amount'][$i] = $orderData['orderDetail'][$i]["dtl_amount"];
-    //  }
-    // } else {
-    //  $postdata['dtl_rowno'][0] = $orderData['orderDetail'][0]["dtl_rowno"];
-    //  $postdata['dtl_item_id'][0] = $orderData['orderDetail'][0]["dtl_item_id"];
-    //  $postdata['dtl_item_name'][0] = $orderData['orderDetail'][0]["dtl_item_name"];
-    //  $postdata['dtl_item_count'][0] = $orderData['orderDetail'][0]["dtl_item_count"];
-    //  $postdata['dtl_tax'][0] = $orderData['orderDetail'][0]["dtl_tax"];
-    //  $postdata['dtl_amount'][0] = '2';
-    // }
-    // $last_postdata = [
-    //  'request_date'    => date("YmdGis"),
-    //  "limit_second"    => "",
-    //  "hashkey"     => $this->configuration['hashkey'],
-    // ];
-    // $postdata = array_merge($postdata, $last_postdata);
 
     // Check each parameter if Japanese/Chinese character
     foreach ($postdata as $key => $value) {
