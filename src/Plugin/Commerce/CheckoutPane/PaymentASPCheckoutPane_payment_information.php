@@ -28,7 +28,6 @@ use Drupal\payment_asp\Plugin\Commerce\PaymentGateway\PaymentASPCommerce_link_ty
  * @CommerceCheckoutPane(
  *   id = "payment_asp_payment_information",
  *   label = @Translation("Payment information - Payment ASP"),
- *   default_step = "order_information",
  *   wrapper_element = "fieldset",
  * )
  */
