@@ -218,7 +218,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
           '#title' => t($default_option->getId()),
           '#type' => 'textfield',
           '#default_value' => '',
-
         ];
       } elseif ($payment_gateway->get('configuration')['method_type'] == 'credit3d') {
         $pane_form['fieldset'] = [
@@ -236,7 +235,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
           '#size' => '20',
           '#required' => TRUE,
         ];
-        
       }
     }
     

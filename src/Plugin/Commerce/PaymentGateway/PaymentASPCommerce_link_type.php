@@ -258,11 +258,9 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
   * {@inheritdoc}
   */
   public function getReturnUrl($id = NULL) {
-    $order_id = \Drupal::service('payment_asp.PaymentASPController')->getOrderIdByURI();
-
-    // $order = $payment->getOrder;
-    // $id = $order->id();
-
+    if (is_null($id)) {
+      $id = \Drupal::service('payment_asp.PaymentASPController')->getOrderIdByURI();
+    }
     return Url::fromRoute('commerce_payment.checkout.return', [
       'commerce_order' => $id,
       'step' => 'payment',
@@ -274,25 +272,21 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
   * Gets the order data from Controller
   */
   public function getOrderData(PaymentInterface $payment) {
-  $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
 
     $pc = \Drupal::service('payment_asp.PaymentASPController');
-  $current_uri = \Drupal::request()->getRequestUri();
-  date_default_timezone_set('Japan');
+    $current_uri = \Drupal::request()->getRequestUri();
+    date_default_timezone_set('Japan');
 
     // Order data from database
-  $order = $payment->getOrder();
-  $id = $order->id();
-//ksm($id); 
+    $order = $payment->getOrder();
     // Common order data parameters
-  $orderData = $pc->getOrderDetails($order);
+    $orderData = $pc->getOrderDetails($order);
     $givenName = $order->getData("billing_profile_givenName");
     $familyName = $order->getData("billing_profile_familyName");
     // Optional payment gateway paramater
-  $payment_gateway_parameter = $order->getData("payment_gateway_parameter");
+    $payment_gateway_parameter = $order->getData("payment_gateway_parameter");
     // $paymentGateway = $payment->getPaymentGateway()->id();
-  $price = new Price("111","JPY");
-  switch ($this->configuration['method_type']) {
+    switch ($this->configuration['method_type']) {
       case 'webcvs':
         $free_csv = "LAST_NAME=" . $familyName . ",FIRST_NAME=" . $givenName . ",MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter;   
         break;
@@ -307,9 +301,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
           $camp_type = 1;
         }
         break;
-      case 'unionpay':
-        break;
-    }
+      }
     
     $postdata = [
       'pay_method'    => $this->configuration['method_type'],
@@ -332,7 +324,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       "camp_type"     => isset($camp_type) ? $camp_type : "",
       "tracking_id"   => "",
       "terminal_type"   => "0",
-      "success_url"   => $this->getReturnUrl($id)->toString(),
+      "success_url"   => $this->getReturnUrl($order->id())->toString(),
       "cancel_url"    => "",
       "error_url"     => "",
       "pagecon_url"   => $this->getNotifyUrl()->toString(),
@@ -345,7 +337,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       'dtl_item_name'   => $orderData['orderDetail'][0]["dtl_item_name"],
       'dtl_item_count'  => $orderData['orderDetail'][0]["dtl_item_count"],
       'dtl_tax'     => $orderData['orderDetail'][0]["dtl_tax"],
-      'dtl_amount'    => "11",//$orderData['orderDetail'][0]["dtl_amount"],
+      'dtl_amount'    => $orderData['orderDetail'][0]["dtl_amount"],
       'dtl_free1'     => $orderData['orderDetail'][0]["dtl_free1"],
       'dtl_free2'     => $orderData['orderDetail'][0]["dtl_free2"],
       'dtl_free3'     => $orderData['orderDetail'][0]["dtl_free3"],
