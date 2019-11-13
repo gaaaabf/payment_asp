@@ -19,8 +19,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\commerce_price\Price;
 use Drupal\Core\Url;
 
-
-use Drupal\Core\Url;
 /**
  * Provides the Payment ASP gateway.
  *
@@ -109,7 +107,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       $id = \Drupal::service('payment_asp.PaymentASPController')->getOrderIdByURI();
     }
     return Url::fromRoute('commerce_payment.checkout.return', [
-      'commerce_order' => $order_id,
+      'commerce_order' => $id,
       'step' => 'payment',
     ], ['absolute' => TRUE]);
   }
@@ -252,21 +250,6 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
     }
 
   }
-
-
-  /**
-  * {@inheritdoc}
-  */
-  public function getReturnUrl($id = NULL) {
-    if (is_null($id)) {
-      $id = \Drupal::service('payment_asp.PaymentASPController')->getOrderIdByURI();
-    }
-    return Url::fromRoute('commerce_payment.checkout.return', [
-      'commerce_order' => $id,
-      'step' => 'payment',
-    ], ['absolute' => TRUE]);
-  }
-
 
   /**
   * Gets the order data from Controller
