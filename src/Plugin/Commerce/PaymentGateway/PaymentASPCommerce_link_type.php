@@ -65,14 +65,13 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
         '#title' => t('Payment Method'),
         '#type' => 'select',
         '#required' => TRUE,
-        '#description' => '<b>MACHINE NAME</b> above must be the same with the word inside the parenthesis ()',
         '#default_value' => $default_value,
         '#options' => array(
-            'credit3d' => 'Credit Card with 3D Secure (credit3d)',
-            'webcvs' => 'Convenience Store (webcvs)',
-            'unionpay' => 'Unionpay (unionpay)',
-            'paypal' => 'Paypal (paypal)',
-            'alipay' => 'Alipay (alipay)',
+          'credit3d' => 'Credit Card with 3D Secure (credit3d)',
+          'webcvs' => 'Convenience Store (webcvs)',
+          'unionpay' => 'Unionpay (unionpay)',
+          'paypal' => 'Paypal (paypal)',
+          'alipay' => 'Alipay (alipay)',
         ),
       ];
 
@@ -83,6 +82,13 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       '#required' => TRUE,
     ];
 
+    $form['service_id'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Service Id'),
+      '#default_value' => $this->configuration['service_id'],
+      '#required' => TRUE,
+    ];
+
     $form['hashkey'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Hashkey'),
@@ -90,12 +96,6 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       '#required' => TRUE,
     ];
 
-    $form['service_id'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Service Id'),
-      '#default_value' => $this->configuration['service_id'],
-      '#required' => TRUE,
-    ];
     return $form;
   }
 
@@ -129,17 +129,14 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
   * {@inheritdoc}
   */
   public function onCancel(OrderInterface $order, Request $request) {
-    \Drupal::logger('payment_asp')->notice($request);
-    ksm($request);
+    \Drupal::logger('payment_asp')->notice('ON CANCEL FUNCTION '.$request);
   }
 
   /**
   * {@inheritdoc}
   */
   public function onReturn(OrderInterface $order, Request $request) {
-    \Drupal::logger('payment_asp')->notice($request);
-
-    ksm($request);
+    \Drupal::logger('payment_asp')->notice('ON RETURN FUNCTION '.$request);
   }
 
   /**
@@ -202,6 +199,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
 
       if ($request->get('res_result') == 'OK') {
+        // Check tracking ID exists to avoid duplication of payment
         $tracking_id = $request->get('res_tracking_id');
         $check_tracking_id = $connection->select('payment_asp_pd', 'tracking_id')->fields('tracking_id', ['tracking_id'])->condition('tracking_id', $tracking_id, '=')->execute()->fetchAll();
 
@@ -215,7 +213,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
             'state' => 'completed',
             'amount' => new Price($request->get('amount'), 'JPY'),
             'payment_gateway' => $this->entityId,
-            'order_id' => $request->get('order_id'),
+            'order_id' => substr($request->get('order_id'), -7, count($request->get('order_id')) - 7), // Temp solution for unique ID
             'test' => $this->getMode() == 'test',
             'remote_id' => $request->get('res_tracking_id'),
             'remote_state' => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
@@ -236,7 +234,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
             'state' => 'failed',
             'amount' => new Price($request->get('amount'), 'JPY'),
             'payment_gateway' => $this->entityId,
-            'order_id' => $request->get('order_id'),
+            'order_id' => substr($request->get('order_id'), -7, count($request->get('order_id')) - 7), // Temp solution for unique ID
             'test' => $this->getMode() == 'test',
             'remote_id' => $request->get('res_tracking_id'),
             'remote_state' => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
@@ -246,7 +244,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       }
 
       $json = new JsonResponse();
-      return $json->setJson(OK,);
+      return $json->setJson(OK);
     }
 
   }
@@ -274,14 +272,13 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
         $free_csv = "LAST_NAME=" . $familyName . ",FIRST_NAME=" . $givenName . ",MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter;   
         break;
       case 'credit3d':
-        // $payment_gateway_parameter  = (int) $order->getData("payment_gateway_parameter");
         if (FALSE) {
           $currentDate = date('Ym', strtotime("+3 months", strtotime($currentDate)));
           $pay_type = 1;
           $auto_charge_type = 1;
           $div_settele = 0;
           $last_charge_month = $currentDate;
-          $camp_type = 1;
+          $camp_type = 0;
         }
         break;
       }
@@ -330,7 +327,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       "limit_second"    => "",
       "hashkey"     => $this->configuration['hashkey'],
     ];
-
+    
     // Check each parameter if Japanese/Chinese character
     foreach ($postdata as $key => $value) {
       if (\Drupal::service('payment_asp.languageCheck')->isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {

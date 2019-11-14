@@ -41,9 +41,9 @@ class PaymentASPCommerce_linktype_plugin_form extends BasePaymentOffsiteForm {
 			$form,
 			$form_state,
 			// 'https://stbfep.sps-system.com/Extra/PayRequestAction.do',
-			'https://stbfep.sps-system.com/Extra/BuyRequestAction.do',
+			// 'https://stbfep.sps-system.com/Extra/BuyRequestAction.do',
 			// 'https://stbfep.sps-system.com/f04/FepPayInfoReceive.do',
-			// 'https://stbfep.sps-system.com/f01/FepBuyInfoReceive.do',
+			'https://stbfep.sps-system.com/f01/FepBuyInfoReceive.do',
 			$postdata,
 			'post'
 		);
