@@ -147,7 +147,6 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
     \Drupal::logger('payment_asp')->notice($request);
 
     if ($this->configuration['method_type'] == 'webcvs') {
-      // Response from SBPS is always JPY
      $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
     
       if ($request->get('res_result') == 'OK') {
@@ -155,7 +154,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
           'state'       => 'pending',
           'amount'      =>  new Price('0','JPY'),
           'payment_gateway' => $this->entityId,
-          'order_id'    => $request->get('order_id'),
+          'order_id'    => substr($request->get('order_id'), -7, count($request->get('order_id')) - 7),
           'test'      => $this->getMode() == 'test',
           'remote_id'   => $request->get('res_tracking_id'),
           'remote_state'  => empty($request->get('res_err_code')) ? 'pending' : $request->get('res_err_code'),
@@ -163,38 +162,37 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
         ]);
         $payment->save();
 
-        $order = \Drupal\commerce_order\Entity\Order::load($request->get('order_id'));
-            $order->lock();
-            $order->set('state', 'completed', $notify = false);
-            $order->save();
+        $order = \Drupal\commerce_order\Entity\Order::load(substr($request->get('order_id'), -7, count($request->get('order_id')) - 7));
+        $order->lock();
+        $order->set('state', 'completed', $notify = false);
+        $order->save();      
       } elseif($request->get('res_result') == 'PY') {
 
-        $pay_info_key      =  $request->get('res_payinfo_key');
-        $res_payinfo_key_arr   =  explode(',', $pay_info_key);
-        $res_code        =  $res_payinfo_key_arr[0];
-        $res_amount_deposit    =  $res_payinfo_key_arr[1];
-        $res_amount_cumulative =  $res_payinfo_key_arr[2];
-        $res_email             =  $res_payinfo_key_arr[3];
-              
+        $pay_info_key = $request->get('res_payinfo_key');
+        $res_payinfo_key_arr = explode(',', $pay_info_key);
+        $res_code = $res_payinfo_key_arr[0];
+        $res_amount_deposit = $res_payinfo_key_arr[1];
+        $res_amount_cumulative = $res_payinfo_key_arr[2];
+        $res_email = $res_payinfo_key_arr[3];
+            
         $payment = $payment_storage->create([
-          'state'         => 'completed',
-          'amount'          => new Price($res_amount_deposit,'JPY'),
-          'payment_gateway' => $this->entityId,
-          'order_id'    => $request->get('order_id'),
-          'test'      => $this->getMode() == 'test',
-          'remote_id'   => $request->get('res_tracking_id'),
-          'remote_state'  => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
-          'authorized'    => $this->time->getRequestTime(),
+        'state'         => 'completed',
+        'amount'          => new Price($res_amount_deposit, 'JPY'),
+        'payment_gateway' => $this->entityId,
+        'order_id'    => substr($request->get('order_id'), -7, count($request->get('order_id')) - 7),
+        'test'      => $this->getMode() == 'test',
+        'remote_id'   => $request->get('res_tracking_id'),
+        'remote_state'  => empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
+        'authorized'    => $this->time->getRequestTime(),
         ]);
         $payment->save();
-      } elseif($request->get('res_result') == 'CN') {
-        $order = \Drupal\commerce_order\Entity\Order::load($request->get('order_id'));
-        $order->delete(); 
-      }
+       } elseif($request->get('res_result') == 'CN') {
+          $order = \Drupal\commerce_order\Entity\Order::load(substr($request->get('order_id'), -7, count($request->get('order_id')) - 7));
+          $order->delete(); 
+       }
 
       $json = new JsonResponse();
       return $json->setJson(OK);
-
     } else {
       $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
 
@@ -242,34 +240,32 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
           ]);
           $payment->save();
       }
-
-      $json = new JsonResponse();
+       $json = new JsonResponse();
       return $json->setJson(OK);
     }
 
-  }
+  }   
 
   /**
   * Gets the order data from Controller
   */
   public function getOrderData(PaymentInterface $payment) {
-
     $pc = \Drupal::service('payment_asp.PaymentASPController');
-    $current_uri = \Drupal::request()->getRequestUri();
     date_default_timezone_set('Japan');
 
     // Order data from database
     $order = $payment->getOrder();
     // Common order data parameters
     $orderData = $pc->getOrderDetails($order);
-    $givenName = $order->getData("billing_profile_givenName");
-    $familyName = $order->getData("billing_profile_familyName");
     // Optional payment gateway paramater
     $payment_gateway_parameter = $order->getData("payment_gateway_parameter");
-    // $paymentGateway = $payment->getPaymentGateway()->id();
+
     switch ($this->configuration['method_type']) {
       case 'webcvs':
-        $free_csv = "LAST_NAME=" . $familyName . ",FIRST_NAME=" . $givenName . ",MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter;   
+        // $givenName = $order->getData("billing_profile_givenName");
+        // $familyName = $order->getData("billing_profile_familyName");
+        $BILL_DATE = $pc->getValidity();
+        $free_csv = "LAST_NAME=,FIRST_NAME=,MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter . ",BILL_DATE=" . (int)$BILL_DATE;  
         break;
       case 'credit3d':
         if (FALSE) {
