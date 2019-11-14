@@ -66,11 +66,12 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
 
     $this->inlineFormManager = $inline_form_manager;
     $this->logger = $logger;
+   
   }
 
   /**
    * {@inheritdoc}
-   */
+   */                    // ----------------------------TRIGGER DURING INIT
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, CheckoutFlowInterface $checkout_flow = NULL) {
     return new static(
       $configuration,
@@ -96,6 +97,7 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function buildConfigurationSummary() {
+ksm('buildConfigurationSummary');    
     if (!empty($this->configuration['capture'])) {
       $summary = $this->t('Transaction mode: Authorize and capture');
     }
@@ -129,6 +131,9 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
+    //ADDED BY RENDROID
+    $this->order->unlock();
+
     parent::submitConfigurationForm($form, $form_state);
 
     if (!$form_state->getErrors()) {
@@ -140,14 +145,15 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
   /**
    * {@inheritdoc}
    */
-  public function isVisible() {
+  public function isVisible() {         // RETURN TRUE DURING INIT
+    
     if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
       // No payment is needed if the order is free or has already been paid.
-      return FALSE;
+  return FALSE;
     }
     $payment_info_pane = $this->checkoutFlow->getPane('payment_information');
     if (!$payment_info_pane->isVisible() || $payment_info_pane->getStepId() == '_disabled') {
-      // Hide the pane if the PaymentInformation pane has been disabled.
+      // Hide the pane if the PaymentInformation pane has been disabled.     
       return FALSE;
     }
 
@@ -172,11 +178,12 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = $payment_storage->create([
-      'state' => 'new',
+  //  'state' => 'new',
+      'state' => 'draft',
       'amount' => $this->order->getBalance(),
       'payment_gateway' => $payment_gateway->id(),
       'order_id' => $this->order->id(),
-    ]);
+    ]);   
     $next_step_id = $this->checkoutFlow->getNextStepId($this->getStepId());
 
     if ($payment_gateway_plugin instanceof OnsitePaymentGatewayInterface) {
@@ -206,6 +213,7 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
     //    $order_id = $this->order->id();
     //    unset($_SESSION["cc_data_".$order_id]);
       try {
+
         $payment->payment_method = $this->order->payment_method->entity;
         $payment_gateway_plugin->createPayment($payment, $this->configuration['capture']);
         $this->checkoutFlow->redirectToStep($next_step_id);
@@ -222,7 +230,11 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
         $this->checkoutFlow->redirectToStep($error_step_id);
       }
     }
+    
+    //------------------------------------------------- For offsite payment method ----------------------------------
+
     elseif ($payment_gateway_plugin instanceof OffsitePaymentGatewayInterface) {
+ 
       $complete_form['actions']['next']['#value'] = $this->t('Proceed to @gateway', [
         '@gateway' => $payment_gateway_plugin->getDisplayLabel(),
       ]);
@@ -231,13 +243,12 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
       $complete_form['actions']['next']['#suffix'] = Link::fromTextAndUrl($this->t('Go back'), $this->buildCancelUrl())->toString();
       // Actions are not needed by gateways that embed iframes or redirect
       // via GET. The inline form can show them when needed (redirect via POST).
-      $complete_form['actions']['#access'] = FALSE;
+      $complete_form['actions']['#access'] = TRUE;
 
       $inline_form = $this->inlineFormManager->createInstance('payment_gateway_form', [
         'operation' => 'offsite-payment',
         'catch_build_exceptions' => FALSE,
       ], $payment);
-
       $pane_form['offsite_payment'] = [
         '#parents' => array_merge($pane_form['#parents'], ['offsite_payment']),
         '#inline_form' => $inline_form,
@@ -245,7 +256,7 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
         '#cancel_url' => $this->buildCancelUrl()->toString(),
         '#capture' => $this->configuration['capture'],
       ];
-      try {
+      try {      
         $pane_form['offsite_payment'] = $inline_form->buildInlineForm($pane_form['offsite_payment'], $form_state);
       }
       catch (PaymentGatewayException $e) {
@@ -255,8 +266,17 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
         $this->checkoutFlow->redirectToStep($error_step_id);
       }
 
+      // To avoid locking order upon payment
+      $order = \Drupal\commerce_order\Entity\Order::load($this->order->id());
+      $order->unlock();
+      $order->save();
+      
       return $pane_form;
     }
+
+  //------------------------------------------------- For offsite payment method ----------------------------------  
+  
+
     elseif ($payment_gateway_plugin instanceof ManualPaymentGatewayInterface) {
       try {
         $payment_gateway_plugin->createPayment($payment);
@@ -324,6 +344,7 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
    * UNUSED FOR NOW
    */
   protected function redirectToCart() {
+ ksm('redirectToCart'); 
     drupal_set_message('Payment has not gone through. Please check you credit card detials', 'error');
     $this->order->get('checkout_flow')->setValue(NULL);
     $this->order->get('checkout_step')->setValue(NULL);
