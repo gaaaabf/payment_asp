@@ -134,24 +134,16 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	public function onNotify(Request $request) {
 		\Drupal::logger('payment_asp')->notice($request);
 		
-		// if($request->isMethod('POST')){
-		// 	 $json = new JsonResponse();
-	 	//   return $json->setJson(OK);
-		// }
 
-		
-
-		// $pc = \Drupal::service('payment_asp.PaymentASPController');
-		
-		// // Response from SBPS is always JPY
 	 $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-	
+	 $order_id = str_replace("aaorderID12345", "", $request->get('order_id'));
+
 	 if($request->get('res_result') == 'OK'){
 		  	$payment = $payment_storage->create([
 			  'state' 			=> 'pending',
 			  'amount' 			=>  new Price('0','JPY'),
 			  'payment_gateway' => $this->entityId,
-			  'order_id' 		=> $request->get('order_id'),
+			  'order_id' 		=> $order_id,
 			  'test' 			=> $this->getMode() == 'test',
 			  'remote_id'		=> $request->get('res_tracking_id'),
 			  'remote_state'	=> empty($request->get('res_err_code')) ? 'pending' : $request->get('res_err_code'),
@@ -159,13 +151,19 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			]);
 			$payment->save();
 
-			$order = \Drupal\commerce_order\Entity\Order::load($request->get('order_id'));
+			$order = \Drupal\commerce_order\Entity\Order::load($order_id);   // $request->get('order_id'));
             $order->lock();
             $order->set('state', 'completed', $notify = false);
             $order->save();
       }
        	 
 		 elseif($request->get('res_result') == 'PY'){
+
+		 	 /*
+		 	 *
+		 	 * Parsing the res_info_key Value
+		 	 *
+		 	 **/
 
      		 $pay_info_key 			=  $request->get('res_payinfo_key');
  			 $res_payinfo_key_arr   =  explode(',', $pay_info_key);
@@ -178,7 +176,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			  'state' 		    => 'completed',
 			  'amount'	        => new Price($res_amount_deposit,'JPY'),
 			  'payment_gateway' => $this->entityId,
-			  'order_id' 		=> $request->get('order_id'),
+			  'order_id' 		=> $order_id,
 			  'test' 			=> $this->getMode() == 'test',
 			  'remote_id'		=> $request->get('res_tracking_id'),
 			  'remote_state' 	=> empty($request->get('res_err_code')) ? 'paid' : $request->get('res_err_code'),
@@ -188,13 +186,13 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
        }
        elseif($request->get('res_result') == 'CN'){
 
-       		$order = \Drupal\commerce_order\Entity\Order::load($request->get('order_id'));
+       		$order = \Drupal\commerce_order\Entity\Order::load($order_id );
             $order->delete(); 
-            // $order->save();	
+         
 
        }
        $json = new JsonResponse();
-	  	return $json->setJson(OK);
+	   return $json->setJson(OK);
       
 	}
 
@@ -203,17 +201,42 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	* {@inheritdoc}
 	*/
 	public function getReturnUrl($id = NULL) {
+		date_default_timezone_set('Japan');
 		$order_id = \Drupal::service('payment_asp.PaymentASPController')->getOrderIdByURI();
 
 		// $order = $payment->getOrder;
 		// $id = $order->id();
 
 		return Url::fromRoute('commerce_payment.checkout.return', [
-		  'commerce_order' => $id,
+		  'commerce_order' => $order_id,
 		  'step' => 'payment',
 		], ['absolute' => TRUE]);
 	}
 
+	/**
+	* {@inheritdoc}
+	*/
+	// public function formatDigit(int $month_digit,int $day_digit , int $year_digit){
+		
+	// 	if($month_digit<10 && $day_digit < 10){
+	// 		$month_digits = '0' . (String)$month_digit;
+	// 		$day_digits = 	'0' . (String)$day_digit;
+	// 	}
+	// 	elseif($day_digit < 10 && $month_digit>=10){
+	// 		$day_digits = '0' . (String)$day_digit;
+	// 		$month_digits = (String)$month_digit;
+	// 	}
+	// 	elseif ($day_digit >= 10 && $month_digit<10) {
+	// 		$month_digits = '0' . (String)$month_digit;
+	// 		$day_digits = (String)$day_digit;
+	// 	}
+	// 	else{
+	// 		$month_digits = (String)$month_digit;
+	// 		$day_digits = (String)$day_digit;
+	// 	}
+
+	// 	return (String)$year_digit.$month_digits.$day_digits;
+	// }
 
 	/**
 	* Gets the order data from Controller
@@ -222,24 +245,17 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 	$payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
 
     $pc = \Drupal::service('payment_asp.PaymentASPController');
-	$current_uri = \Drupal::request()->getRequestUri();
-	date_default_timezone_set('Japan');
-
-		// Order data from database
-	$order = $payment->getOrder();
-	$id = $order->id();
-//ksm($id);	
-		// Common order data parameters
-	$orderData = $pc->getOrderDetails($order);
-    $givenName = $order->getData("billing_profile_givenName");
-    $familyName = $order->getData("billing_profile_familyName");
-    // Optional payment gateway paramater
-	$payment_gateway_parameter = $order->getData("payment_gateway_parameter");
-		// $paymentGateway = $payment->getPaymentGateway()->id();
-	$price = new Price("111","JPY");
+    $BILL_DATE   = $pc->getValidity();
+ 	$current_uri = \Drupal::request()->getRequestUri();
+	$order 	     = $payment->getOrder();
+	$id 	     = $order->id();
+	$orderData   = $pc->getOrderDetails($order);
+	    $givenName 				   = $order->getData("billing_profile_givenName");
+	    $familyName 			   = $order->getData("billing_profile_familyName");
+	    $payment_gateway_parameter = $order->getData("payment_gateway_parameter");
 	switch ($this->configuration['method_type']) {
 			case 'webcvs':
-				$free_csv = "LAST_NAME=" . $familyName . ",FIRST_NAME=" . $givenName . ",MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter;		
+				$free_csv = "LAST_NAME=,FIRST_NAME=,MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter . ",BILL_DATE=" . (int)$BILL_DATE;		
 				break;
 			case 'credit3d':
 				// $payment_gateway_parameter  = (int) $order->getData("payment_gateway_parameter");
@@ -256,6 +272,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 		}
     
 		$postdata = [
+
 			'pay_method'		=> $this->configuration['method_type'],
 			'merchant_id'		=> $this->configuration['merchant_id'],
 			'service_id'		=> $this->configuration['service_id'],
@@ -265,8 +282,8 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"order_id"			=> $orderData['order_id'],
 			"item_id"			=> $orderData['orderDetail'][0]["dtl_item_id"],
 			"pay_item_id"		=> "",
-			"item_name"			=> $orderData['orderDetail'][0]["dtl_item_name"],
-			"tax"				=> $orderData['tax'],
+			"item_name"			=> "",//$orderData['orderDetail'][0]["dtl_item_name"],
+			"tax"				=> "0",//$orderData['tax'],
 			"amount"			=> $orderData['amount'],
 			"pay_type"			=> isset($pay_type) ? $pay_type : "0",
 			"auto_charge_type"	=> isset($auto_charge_type) ? $auto_charge_type : "",
@@ -284,15 +301,15 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 			"free2"				=> "",
 			"free3"				=> "",
 			"free_csv"			=> isset($free_csv) ? $free_csv : '',	
-			'dtl_rowno'			=> $orderData['orderDetail'][0]["dtl_rowno"],
-			'dtl_item_id'		=> $orderData['orderDetail'][0]["dtl_item_id"],
-			'dtl_item_name'		=> $orderData['orderDetail'][0]["dtl_item_name"],
-			'dtl_item_count'	=> $orderData['orderDetail'][0]["dtl_item_count"],
-			'dtl_tax'			=> $orderData['orderDetail'][0]["dtl_tax"],
-			'dtl_amount'		=> "11",//$orderData['orderDetail'][0]["dtl_amount"],
-			'dtl_free1'			=> $orderData['orderDetail'][0]["dtl_free1"],
-			'dtl_free2'			=> $orderData['orderDetail'][0]["dtl_free2"],
-			'dtl_free3'			=> $orderData['orderDetail'][0]["dtl_free3"],
+			// 'dtl_rowno'			=> $orderData['orderDetail'][0]["dtl_rowno"],
+			// 'dtl_item_id'		=> $orderData['orderDetail'][0]["dtl_item_id"],
+			// 'dtl_item_name'		=> $orderData['orderDetail'][0]["dtl_item_name"],
+			// 'dtl_item_count'	=> $orderData['orderDetail'][0]["dtl_item_count"],
+			// 'dtl_tax'			=> $orderData['orderDetail'][0]["dtl_tax"],
+			// 'dtl_amount'		=> $orderData['orderDetail'][0]["dtl_amount"],
+			// 'dtl_free1'			=> $orderData['orderDetail'][0]["dtl_free1"],
+			// 'dtl_free2'			=> $orderData['orderDetail'][0]["dtl_free2"],
+			// 'dtl_free3'			=> $orderData['orderDetail'][0]["dtl_free3"],
 			'request_date'		=> date("YmdGis"),
 			"limit_second"		=> "",
 			"hashkey"			=> $this->configuration['hashkey'],

@@ -12,6 +12,110 @@ class PaymentASPController extends ControllerBase {
   }
 
   /**
+  * {@inheritdoc}
+  */
+public function formatDigit(int $month_digit,int $day_digit , int $year_digit){
+    
+    if($month_digit<10 && $day_digit < 10){
+      $month_digits = '0' . (String)$month_digit;
+      $day_digits   =   '0' . (String)$day_digit;
+    }
+    elseif($day_digit < 10 && $month_digit>=10){
+      $day_digits   = '0' . (String)$day_digit;
+      $month_digits = (String)$month_digit;
+    }
+    elseif ($day_digit >= 10 && $month_digit<10) {
+      $month_digits = '0' . (String)$month_digit;
+      $day_digits   = (String)$day_digit;
+    }
+    else{
+      $month_digits = (String)$month_digit;
+      $day_digits   = (String)$day_digit;
+    }
+
+    return (String)$year_digit.$month_digits.$day_digits;
+  }
+
+  /**
+  * {@inheritdoc}
+  */
+ public function getValidity(){
+
+    $valid_day = 10;   // VALID for 10 DAYS
+    $BILL_DATE_day   = (int)date("d") + $valid_day;
+    $BILL_DATE_month = (int)date("m");
+    $BILL_DATE_Year  = (int)date("Y");
+
+    if(checkdate ( $BILL_DATE_month , $BILL_DATE_day ,  $BILL_DATE_Year )){
+      $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+    }
+    else{
+    //Check if days of month is not overflow
+      if(checkdate ( $BILL_DATE_month , 28 ,  $BILL_DATE_Year ) &&  !checkdate( $BILL_DATE_month , 29 ,  $BILL_DATE_Year )){
+        $BILL_DATE_day = $BILL_DATE_day - 28;
+        $BILL_DATE_month = $BILL_DATE_month + 1;
+    //Check if month of the year not oveflow
+        if($BILL_DATE_month != 13){
+        
+          $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+        }
+        else{
+          $BILL_DATE_month = 1;
+          $BILL_DATE_Year = $BILL_DATE_Year + 1;
+          $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+        }
+        
+      }
+      elseif(checkdate ( $BILL_DATE_month , 29 ,  $BILL_DATE_Year ) &&  !checkdate( $BILL_DATE_month , 30 ,  $BILL_DATE_Year )){
+        $BILL_DATE_day = $BILL_DATE_day - 29;
+        $BILL_DATE_month = $BILL_DATE_month + 1;
+
+        if($BILL_DATE_month != 13){
+          $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+        }
+        else{
+          $BILL_DATE_month = 1;
+          $BILL_DATE_Year = $BILL_DATE_Year + 1;
+          $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+        }
+        
+      }
+      elseif (checkdate ( $BILL_DATE_month , 30 ,  $BILL_DATE_Year ) &&  !checkdate( $BILL_DATE_month , 31 ,  $BILL_DATE_Year ) ) {
+        $BILL_DATE_day =  $BILL_DATE_day - 30;
+        $BILL_DATE_month = $BILL_DATE_month + 1;
+
+        if($BILL_DATE_month != 13){
+          $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+        }
+        else{
+          $BILL_DATE_month = 1;
+          $BILL_DATE_Year = $BILL_DATE_Year + 1;
+          $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+        }
+        
+      }
+      elseif (checkdate( $BILL_DATE_month , 31 ,  $BILL_DATE_Year )) {
+        $BILL_DATE_day = $BILL_DATE_day - 31;
+        $BILL_DATE_month = $BILL_DATE_month + 1;
+        
+        if($BILL_DATE_month != 13){
+          $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+        }
+        else{
+          $BILL_DATE_month = 1;
+          $BILL_DATE_Year = $BILL_DATE_Year + 1;
+          $BILL_DATE = $this->formatDigit((int)$BILL_DATE_month , (int)$BILL_DATE_day , (int)$BILL_DATE_Year);
+        }
+
+      }
+    }
+
+    return $BILL_DATE;
+ }
+
+
+
+  /**
   * Gets order entity based by URI
   */
   public function getOrderIdByURI() {
@@ -46,7 +150,7 @@ class PaymentASPController extends ControllerBase {
       $perItem['dtl_rowno'] = (int) $i+1;
       $perItem['dtl_item_id'] = $items[$i]->id();
       $perItem['dtl_item_name'] = $items[$i]->label();
-      $perItem['dtl_amount'] = number_format((float)$item_price, 0, '.', '');
+      $perItem['dtl_amount'] =  number_format((float)$item_price, 0, '.', '');
       $perItem['dtl_item_count'] = (int)$items[$i]->getQuantity();
 
       $taxEntity = $items[$i]->getAdjustments(array('tax'));
@@ -64,7 +168,7 @@ class PaymentASPController extends ControllerBase {
     $data_needed = array(
       'order_id' => $order_id,
       'cust_code' => $order->getCustomer()->getDisplayName(),
-      'amount' => number_format((float)$order->getTotalPrice(), 0, '.', ''),
+      'amount' => number_format((float)$order->getTotalPrice()->getNumber(), 0, '.', ''),
       'tax' => $perItem['dtl_tax'],
       'orderDetail' => $orderDetail,
       // No value as for the moment
