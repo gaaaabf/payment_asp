@@ -129,6 +129,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
   * {@inheritdoc}
   */
   public function onCancel(OrderInterface $order, Request $request) {
+     drupal_set_message(t('An error occured with the payment. Please try again.'), 'error');
     \Drupal::logger('payment_asp')->notice('ON CANCEL FUNCTION '.$request);
   }
 
@@ -136,6 +137,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
   * {@inheritdoc}
   */
   public function onReturn(OrderInterface $order, Request $request) {
+    drupal_set_message(t('Payment is successful'), 'success');
     \Drupal::logger('payment_asp')->notice('ON RETURN FUNCTION '.$request);
   }
 
@@ -149,7 +151,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
     if ($this->configuration['method_type'] == 'webcvs') {    
       if ($request->get('res_result') == 'OK') {
         $this->createPayment($request, 'pending', 0);
-        $this->completeOrder(substr($request->get('order_id'), -7, count($request->get('order_id')) - 7));
+        $this->completeOrder(substr($request->get('order_id'), 0, -4));
       } elseif ($request->get('res_result') == 'PY') {
 
         $pay_info_key = $request->get('res_payinfo_key');
@@ -162,7 +164,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
         $this->createPayment($request, 'completed', $res_amount_deposit);
 
        } elseif ($request->get('res_result') == 'CN') {
-          $order = \Drupal\commerce_order\Entity\Order::load(substr($request->get('order_id'), -7, count($request->get('order_id')) - 7));
+          $order = \Drupal\commerce_order\Entity\Order::load(substr($request->get('order_id'), 0, -4));
           $order->delete(); 
        }
     } else {
@@ -174,7 +176,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
           return $request;
         } else {
           $this->createPayment($request, 'completed');
-          $this->completeOrder(substr($request->get('order_id'), -7, count($request->get('order_id')) - 7));
+          $this->completeOrder(substr($request->get('order_id'), 0, -4));
         }
       } elseif ($request->get('res_result') == 'NG') {
         $order = \Drupal\commerce_order\Entity\Order::load($request->get('order_id'));
@@ -200,7 +202,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       'state'       => $state,
       'amount'      =>  new Price($amount ,'JPY'),
       'payment_gateway' => $this->entityId,
-      'order_id'    => substr($request->get('order_id'), -7, count($request->get('order_id')) - 7),
+      'order_id'    => substr($request->get('order_id'), 0, -4),
       'test'      => $this->getMode() == 'test',
       'remote_id'   => $request->get('res_tracking_id'),
       'remote_state'  => empty($request->get('res_err_code')) ? $state : $request->get('res_err_code'),
@@ -281,7 +283,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       "cust_code"     => $orderData['cust_code'],
       "sps_cust_no"   => "",
       "sps_payment_no"  => "",
-      "order_id"      => $orderData['order_id'].date("Ys"),
+      "order_id"      => $orderData['order_id'].date('is'),
       "item_id"     => $orderData['orderDetail'][0]["dtl_item_id"],
       "pay_item_id"   => "",
       "item_name"     => "",
