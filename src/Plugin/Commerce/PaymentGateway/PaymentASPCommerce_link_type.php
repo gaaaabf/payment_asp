@@ -176,7 +176,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
           return $request;
         } else {
           $this->createPayment($request, 'completed');
-          $this->completeOrder(substr($request->get('order_id'), 0, -4));
+          // $this->completeOrder(substr($request->get('order_id'), 0, -4));
         }
       } elseif ($request->get('res_result') == 'NG') {
         $order = \Drupal\commerce_order\Entity\Order::load($request->get('order_id'));
@@ -222,12 +222,16 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
   /**
   * Completes Order
   */
-  public function completeOrder($order_id) {
+  public function completeOrder($order_id, $state = 'complete') {
     $order = \Drupal\commerce_order\Entity\Order::load($order_id);
-    $order->unlock();
-    $order->set('state', 'validation', $notify = false);
+    $order->set('checkout_step', $state);
     $order->set('cart', 0);
-    $order->save();  
+    $order->getState()->applyTransitionById('place');
+    $order->save();
+
+    // $order->unlock();
+    // $order->set('state', $state, $notify = false);
+    // $order->save();  
   }
 
   /**
@@ -259,10 +263,12 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 
     switch ($this->configuration['method_type']) {
       case 'webcvs':
-        // $givenName = $order->getData("billing_profile_givenName");
-        // $familyName = $order->getData("billing_profile_familyName");
+        $givenName = $order->getData("billing_profile_givenName");
+        $familyName = $order->getData("billing_profile_familyName");
+        $kana_givenName = mb_convert_kana($givenName, "NRS","UTF-8");
+        $kana_familyName = mb_convert_kana($familyName, "NRS","UTF-8");
         $BILL_DATE = $pc->getValidity();
-        $free_csv = "LAST_NAME=,FIRST_NAME=,MAIL=" . $order->getEmail(). ",TEL=" . $payment_gateway_parameter . ",BILL_DATE=" . (int)$BILL_DATE;  
+        $free_csv = "LAST_NAME=" . $kana_familyName . ",FIRST_NAME=" . $kana_givenName . ",MAIL=" . $order->getEmail() . ",TEL=" . $payment_gateway_parameter . ",BILL_DATE=" . (int)$BILL_DATE;
         break;
       case 'credit3d':
         if (FALSE) {
@@ -321,13 +327,6 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
       "hashkey"     => $this->configuration['hashkey'],
     ];
     
-    // Check each parameter if Japanese/Chinese character
-    foreach ($postdata as $key => $value) {
-      if (\Drupal::service('payment_asp.languageCheck')->isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
-        $postdata[$key] = base64_encode($postdata[$key]);
-      }
-    }
-
     return $postdata;
   }
 

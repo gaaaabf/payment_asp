@@ -14,17 +14,17 @@ class PaymentASPController extends ControllerBase {
   /**
   * {@inheritdoc}
   */
-  public function formatDigit(int $month_digit, int $day_digit, sint $year_digit) {
+  public function formatDigit(int $month_digit, int $day_digit, int $year_digit) {
     
     if($month_digit<10 && $day_digit < 10) {
       $month_digits = '0' . (String)$month_digit;
       $day_digits   = '0' . (String)$day_digit;
     }
-    elseif($day_digit < 10 && $month_digit>=10) {
+    elseif($day_digit < 10 && $month_digit >= 10) {
       $day_digits   = '0' . (String)$day_digit;
       $month_digits = (String)$month_digit;
     }
-    elseif ($day_digit >= 10 && $month_digit<10) {
+    elseif ($day_digit >= 10 && $month_digit < 10) {
       $month_digits = '0' . (String)$month_digit;
       $day_digits   = (String)$day_digit;
     }

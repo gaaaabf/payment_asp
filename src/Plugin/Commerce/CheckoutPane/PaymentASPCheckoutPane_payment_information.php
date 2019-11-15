@@ -228,9 +228,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         $pane_form['fieldset'] = [
           '#title' => t('Telphone'),
           '#type' => 'textfield',
-          '#default_value' => '',
           '#weight' => 0,
-          '#maxlength' => '12',
+          '#maxlength' => '11',
           '#size' => '20',
           '#required' => TRUE,
         ];

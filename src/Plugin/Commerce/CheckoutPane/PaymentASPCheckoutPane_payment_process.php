@@ -178,8 +178,7 @@ ksm('buildConfigurationSummary');
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = $payment_storage->create([
-  //  'state' => 'new',
-      'state' => 'draft',
+      'state' => 'new',
       'amount' => $this->order->getBalance(),
       'payment_gateway' => $payment_gateway->id(),
       'order_id' => $this->order->id(),
