@@ -16,7 +16,7 @@ use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 use Drupal\payment_asp\Plugin\Commerce\PaymentGateway\PaymentASPCommerce_link_type;
-
+use Drupal\Core\Messenger\MessengerInterface;
 /**
  * Provides the payment information pane.
  *
@@ -102,7 +102,10 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
   /**
    * {@inheritdoc}
    */
-  public function buildPaneSummary() {
+  public function buildPaneSummary() {  // triggers on review
+    
+
+
     $billing_profile = $this->order->getBillingProfile();
     if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
       if ($billing_profile) {
@@ -123,7 +126,10 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       return $summary;
     }
     $payment_method = $this->order->get('payment_method')->entity;
+
+
     if ($payment_method) {
+    
       $view_builder = $this->entityTypeManager->getViewBuilder('commerce_payment_method');
       $summary = $view_builder->view($payment_method, 'default');
     }
@@ -133,6 +139,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
           '#markup' => $payment_gateway->getPlugin()->getDisplayLabel(),
         ],
       ];
+     
       if ($billing_profile) {
         $view_builder = $this->entityTypeManager->getViewBuilder('profile');
         $summary['profile'] = $view_builder->view($billing_profile, 'default');
@@ -147,7 +154,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form) {
 
-//ksm(Drupal\payment_asp\Plugin\Commerce\PaymentGateway\PaymentASPCommerce_link_type);
 
     if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
       // No payment is needed if the order is free or has already been paid.
@@ -180,8 +186,10 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     $option_labels = array_map(function (PaymentOption $option) {
       return $option->getLabel();
     }, $options);
-    $parents = array_merge($pane_form['#parents'], ['payment_method']);
-    $default_option_id = NestedArray::getValue($form_state->getUserInput(), $parents);
+    
+          $parents = array_merge($pane_form['#parents'], ['payment_method']);
+          $default_option_id = NestedArray::getValue($form_state->getUserInput(), $parents);
+
     if ($default_option_id && isset($options[$default_option_id])) {
       $default_option = $options[$default_option_id];
     }
@@ -206,55 +214,52 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $pane_form['payment_method'][$option->getId()]['#attributes']['class'][] = "payment-method--$class_name";
     }
     // Store the options for submitPaneForm().
-    $pane_form['#payment_options'] = $options;
-
-    $default_payment_gateway_id = $default_option->getPaymentGatewayId();
-    $payment_gateway = $payment_gateways[$default_payment_gateway_id];
     
+
+    $pane_form['#payment_options'] = $options;
+    $default_payment_gateway_id = $default_option->getPaymentGatewayId();
+
+   $payment_gateway = $payment_gateways[$default_payment_gateway_id];
+
+
     if ($payment_gateway->getPlugin() instanceof SupportsStoredPaymentMethodsInterface) {
       $pane_form = $this->buildPaymentMethodForm($pane_form, $form_state, $default_option);
     }
     elseif ($payment_gateway->getPlugin()->collectsBillingInformation()) {
       
-      if($payment_gateway->get('configuration')['method_type'] == 'offsite'){
- //     if ($default_option->getId() == 'offsite') {
+      $pane_form = $this->buildBillingProfileForm($pane_form, $form_state);
+     if ($payment_gateway->get('configuration')['method_type'] == 'offsite') {
         $pane_form['fieldset'] = [
-         '#title' => t($default_option->getId()),
-         '#type' => 'textfield',
-         '#default_value' => '',
-        ];
-      }
-      // elseif ($default_option->getId() == 'credit3d') {
-      //   $pane_form['fieldset'] = [
-      //     '#title' => t('Split Count'),
-      //     '#type' => 'select',
-      //     '#default_value' => '1',
-      //     '#weight' => 0,
-      //     '#required' => TRUE,
-      //       '#options' => array(
-      //         '1' => 'One-time payment',
-      //         '2' => '2',
-      //         '3' => '3',
-      //         '4' => '5',
-      //         '5' => '6',
-      //       ),
-      //     ];
-      // }
-      elseif($payment_gateway->get('configuration')['method_type'] == 'webcvs'){
-      //elseif ($default_option->getId() == 'webcvs') {
-        $pane_form['fieldset'] = [
-          '#title' => t('Telphone'),
+          '#title' => t($default_option->getId()),
           '#type' => 'textfield',
-          '#default_value' => ' ',
+          '#default_value' => '',
+        ];
+      } elseif ($payment_gateway->get('configuration')['method_type'] == 'credit3d') {
+        $pane_form['fieldset'] = [
+          '#type' => 'markup',
+          '#markup' => t('<b>Note:</b> Installment payment is only available for amounts 10,000 above'),
           '#weight' => 0,
-          '#maxlength' => '12',
+        ];
+      } elseif ($payment_gateway->get('configuration')['method_type'] == 'webcvs') {
+        $pane_form['fieldset'] = [
+          '#title' => t('Telephone'),
+          '#type' => 'textfield',
+          '#weight' => 0,
+          '#maxlength' => '11',
           '#size' => '20',
           '#required' => TRUE,
         ];
       }
+      elseif ($payment_gateway->get('configuration')['method_type'] == NULL) {
+           $pane_form['fieldset'] = [
+          '#type' => 'markup',
+          '#markup' => t('<b>Note:</b>    Only Available in JAPAN'),
+          '#weight' => 0,
+        ];
+      }
+       
     }
-    // ksm($this->order->getBillingProfile());
-    return $pane_form;
+      return $pane_form;
   }
 
   /**
@@ -310,12 +315,14 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    */
   protected function buildBillingProfileForm(array $pane_form, FormStateInterface $form_state) {
     $billing_profile = $this->order->getBillingProfile();
+
     if (!$billing_profile) {
       $billing_profile = $this->entityTypeManager->getStorage('profile')->create([
         'type' => 'customer',
         'uid' => 0,
       ]);
     }
+
     $inline_form = $this->inlineFormManager->createInstance('customer_profile', [
       'profile_scope' => 'billing',
       'available_countries' => $this->order->getStore()->getBillingCountries(),
@@ -329,6 +336,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       '#inline_form' => $inline_form,
     ];
     $pane_form['billing_information'] = $inline_form->buildInlineForm($pane_form['billing_information'], $form_state);
+
     return $pane_form;
   }
 
@@ -341,6 +349,9 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     return NestedArray::getValue($form, $parents);
   }
 
+
+
+//--------------------------------------------VALIDATE-----------------------------------------
   /**
    * {@inheritdoc}
    */
@@ -350,9 +361,24 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     }
 
     $values = $form_state->getValue($pane_form['#parents']);
+
     if (!isset($values['payment_method'])) {
       $form_state->setError($complete_form, $this->noPaymentGatewayErrorMessage());
     }
+
+     
+      $billing_profile = $this->order->getBillingProfile();
+     
+       $current_country = $pane_form['billing_information']['#inline_form'];
+       $country_code = $current_country->getEntity()->get('address')->getValue();
+       $payment_gateway_storage = $this->entityTypeManager->getStorage('commerce_payment_gateway');
+       $payment_gateways = $payment_gateway_storage->loadMultipleForOrder($this->order);
+       $default_payment_gateway_id = $pane_form['payment_method']['#default_value'];
+       $payment_gateway = $payment_gateways[$default_payment_gateway_id];
+
+      if($country_code[0]['country_code'] != 'JP' && $payment_gateway->get('plugin') == 'manual'){
+          $form_state->setError($complete_form, 'Gi ingnan na bawal , d motoo');
+      }
   }
 
   /**
@@ -360,11 +386,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
 
-    $value_address  =  $this->order->getBillingProfile()->get('address');
-    $givenName   =  $value_address->first()->getGivenName();
-    $familyName  =  $value_address->first()->getFamilyName();
+     if (isset($pane_form['billing_information'])) {
     
-    if (isset($pane_form['billing_information'])) {
       /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
       $inline_form = $pane_form['billing_information']['#inline_form'];
       /** @var \Drupal\profile\Entity\ProfileInterface $billing_profile */
@@ -373,10 +396,14 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       // The billing profile is provided either because the order is free,
       // or the selected gateway is off-site. If it's the former, stop here.
       if ($this->order->isPaid() || $this->order->getTotalPrice()->isZero()) {
+
         return;
       }
     }
 
+    $value_address  =  $this->order->getBillingProfile()->get('address');   
+    $givenName   =  $value_address->first()->getGivenName();
+    $familyName  =  $value_address->first()->getFamilyName();
     $values = $form_state->getValue($pane_form['#parents']);
     /** @var \Drupal\commerce_payment\PaymentOption $selected_option */
     $selected_option = $pane_form['#payment_options'][$values['payment_method']];
@@ -400,7 +427,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         $payment_method_storage = $this->entityTypeManager->getStorage('commerce_payment_method');
         $payment_method = $payment_method_storage->load($selected_option->getPaymentMethodId());
       }
-
       /** @var \Drupal\commerce_payment\Entity\PaymentMethodInterface $payment_method */
       $this->order->set('payment_gateway', $payment_method->getPaymentGateway());
       $this->order->set('payment_method', $payment_method);
