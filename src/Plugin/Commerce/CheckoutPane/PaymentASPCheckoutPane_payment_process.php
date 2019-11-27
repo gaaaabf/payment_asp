@@ -97,7 +97,6 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function buildConfigurationSummary() {
-ksm('buildConfigurationSummary');    
     if (!empty($this->configuration['capture'])) {
       $summary = $this->t('Transaction mode: Authorize and capture');
     }
@@ -178,8 +177,7 @@ ksm('buildConfigurationSummary');
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
     /** @var \Drupal\commerce_payment\Entity\PaymentInterface $payment */
     $payment = $payment_storage->create([
-  //  'state' => 'new',
-      'state' => 'draft',
+      'state' => 'new',
       'amount' => $this->order->getBalance(),
       'payment_gateway' => $payment_gateway->id(),
       'order_id' => $this->order->id(),
@@ -344,7 +342,6 @@ ksm('buildConfigurationSummary');
    * UNUSED FOR NOW
    */
   protected function redirectToCart() {
- ksm('redirectToCart'); 
     drupal_set_message('Payment has not gone through. Please check you credit card detials', 'error');
     $this->order->get('checkout_flow')->setValue(NULL);
     $this->order->get('checkout_step')->setValue(NULL);
