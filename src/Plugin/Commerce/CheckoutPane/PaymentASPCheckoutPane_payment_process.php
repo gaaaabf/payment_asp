@@ -97,7 +97,6 @@ class PaymentASPCheckoutPane_payment_process extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function buildConfigurationSummary() {
-ksm('buildConfigurationSummary');    
     if (!empty($this->configuration['capture'])) {
       $summary = $this->t('Transaction mode: Authorize and capture');
     }
@@ -343,7 +342,6 @@ ksm('buildConfigurationSummary');
    * UNUSED FOR NOW
    */
   protected function redirectToCart() {
- ksm('redirectToCart'); 
     drupal_set_message('Payment has not gone through. Please check you credit card detials', 'error');
     $this->order->get('checkout_flow')->setValue(NULL);
     $this->order->get('checkout_step')->setValue(NULL);

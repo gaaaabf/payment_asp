@@ -129,7 +129,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
   * {@inheritdoc}
   */
   public function onCancel(OrderInterface $order, Request $request) {
-     drupal_set_message(t('An error occured with the payment. Please try again.'), 'error');
+     drupal_set_message(t('An error occurred with the payment. Please try again.'), 'error');
     \Drupal::logger('payment_asp')->notice('ON CANCEL FUNCTION '.$request);
   }
 
@@ -150,7 +150,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
 
     if ($this->configuration['method_type'] == 'webcvs') {    
       if ($request->get('res_result') == 'OK') {
-        $this->createPayment($request, 'pending', 0);
+        $this->createPayment($request, 'Pending', 0);
         $this->completeOrder(substr($request->get('order_id'), 0, -4));
       } elseif ($request->get('res_result') == 'PY') {
 
@@ -268,7 +268,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
         $kana_givenName = mb_convert_kana($givenName, "NRS","UTF-8");
         $kana_familyName = mb_convert_kana($familyName, "NRS","UTF-8");
         $BILL_DATE = $pc->getValidity();
-        $free_csv = "LAST_NAME=" . $kana_familyName . ",FIRST_NAME=" . $kana_givenName . ",MAIL=" . $order->getEmail() . ",TEL=" . $payment_gateway_parameter . ",BILL_DATE=" . (int)$BILL_DATE;
+        $free_csv = "LAST_NAME=" . $kana_familyName . ",FIRST_NAME=" . $kana_givenName . ",MAIL=" . $order->getEmail() . ",TEL=" . $payment_gateway_parameter . ",BILL_DATE=" .  (int)$BILL_DATE;
         break;
       case 'credit3d':
         if (FALSE) {

@@ -16,6 +16,7 @@ use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 use Drupal\payment_asp\Plugin\Commerce\PaymentGateway\PaymentASPCommerce_link_type;
+use Drupal\Core\Messenger\MessengerInterface;
 
 /**
  * Provides the payment information pane.
@@ -226,12 +227,18 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         ];
       } elseif ($payment_gateway->get('configuration')['method_type'] == 'webcvs') {
         $pane_form['fieldset'] = [
-          '#title' => t('Telphone'),
+          '#title' => t('Telephone'),
           '#type' => 'textfield',
           '#weight' => 0,
           '#maxlength' => '11',
           '#size' => '20',
           '#required' => TRUE,
+        ];
+      } elseif ($payment_gateway->get('configuration')['method_type'] == NULL) {
+           $pane_form['fieldset'] = [
+          '#type' => 'markup',
+          '#markup' => t('<b>Note:</b> Only Available in JAPAN'),
+          '#weight' => 0,
         ];
       }
     }
@@ -334,6 +341,20 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     $values = $form_state->getValue($pane_form['#parents']);
     if (!isset($values['payment_method'])) {
       $form_state->setError($complete_form, $this->noPaymentGatewayErrorMessage());
+    }
+    
+    $billing_profile = $this->order->getBillingProfile();
+    $current_country = $pane_form['billing_information']['#inline_form'];
+    $country_code = $current_country->getEntity()->get('address')->getValue();
+
+    $payment_gateway_storage = $this->entityTypeManager->getStorage('commerce_payment_gateway');
+    $payment_gateways = $payment_gateway_storage->loadMultipleForOrder($this->order);
+
+    $default_payment_gateway_id = $pane_form['payment_method']['#default_value'];
+    $payment_gateway = $payment_gateways[$default_payment_gateway_id];
+      
+    if ($country_code[0]['country_code'] != 'JP' && ($payment_gateway->get('plugin') == 'manual' || $payment_gateway->get('configuration')['method_type'] == 'webcvs')) {
+        $form_state->setError($complete_form, 'THIS BILLING ADDRESS only AVAILABLE IN JAPAN');
     }
   }
 
