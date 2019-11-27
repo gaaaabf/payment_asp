@@ -25,10 +25,6 @@ class PaymentASPCommerce_linktype_plugin_form extends BasePaymentOffsiteForm {
 		$postdata["cancel_url"] = $form['#cancel_url'];
 		$postdata["error_url"] = $form['#cancel_url'];
 
-
-		// Convert to UTF-8
-		$postdata = mb_convert_encoding($postdata, 'Shift_JIS', 'UTF-8');
-
     // Check each parameter if Japanese/Chinese character
     foreach ($postdata as $key => $value) {
       if (\Drupal::service('payment_asp.languageCheck')->isJapanese($postdata[$key]) || strcmp($key, 'free_csv') == 0) {
@@ -36,6 +32,8 @@ class PaymentASPCommerce_linktype_plugin_form extends BasePaymentOffsiteForm {
       }
     }
     
+		// Convert to UTF-8
+		$postdata = mb_convert_encoding($postdata, 'Shift_JIS', 'UTF-8');
 		// Concatenate each value
 		$sps_hashcode = (String) implode('', $postdata);
 		// Hashkey generation using sha1
