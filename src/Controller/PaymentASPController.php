@@ -154,7 +154,7 @@ class PaymentASPController extends ControllerBase {
     
     $data_needed = array(
       'order_id' => $order_id,
-      'cust_code' => $order->getCustomer()->getDisplayName(),
+      'cust_code' => $order->getCustomerId(),
       'amount' => number_format((float)$order->getTotalPrice()->getNumber(), 0, '.', ''),
       'tax' => $perItem['dtl_tax'],
       'orderDetail' => $orderDetail,
