@@ -317,18 +317,23 @@ class PaymentASPController extends ControllerBase {
 
     return $postdata;
   }
-  public function getRefundDetails() {
+  public function getRefundDetails($merchant_id, $service_id, $payment, $amount) {
+    $connection = \Drupal::database()
+             ->select('payment_asp_pd')
+             ->fields('payment_asp_pd')
+             ->condition('p_fk_id', $payment->id())
+             ->execute();
+    $payment_asp_pd = $connection->fetchAssoc();
 
-    // $query = \Drupal::database();
-
+    // ksm($payment_asp_pd['tracking_id']);
     // API送信データ
-    $merchant_id = '';
-    $service_id = '';
+    $merchant_id = $merchant_id;
+    $service_id = $service_id;
     $sps_transaction_id = ''; 
-    $tracking_id = '';
-    $processing_datetime = '';
-    $amount = '';
-    $request_date = '';
+    $tracking_id = $payment_asp_pd['tracking_id'];
+    $processing_datetime = date("YmdGis");
+    $amount = number_format((float)$amount->getNumber(), 0, '.', '');
+    $request_date = date("YmdGis");
     $limit_second = '';
 
     // Shift_JIS変換

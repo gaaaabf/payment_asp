@@ -12,12 +12,15 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\payment_asp\Controller\PaymentASPController;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 
+use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsRefundsInterface;
+
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\Serializer\Serializer;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsNotificationsInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Drupal\commerce_price\Price;
 use Drupal\Core\Url;
+use GuzzleHttp\Client;
 
 /**
  * Provides the Payment ASP gateway.
@@ -28,13 +31,12 @@ use Drupal\Core\Url;
  *   display_label = "Payment ASP Link Type",
  *   forms = {
  *     "offsite-payment" = "Drupal\payment_asp\PluginForm\PaymentASPCommerce_linktype_plugin_form",
+ *
  *   },
  *   payment_type = "payment_default"
  * )
  */
-class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements SupportsNotificationsInterface {
-
-
+class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements SupportsNotificationsInterface, SupportsRefundsInterface {
 
   /**
   * {@inheritdoc}
@@ -48,6 +50,70 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
     ] + parent::defaultConfiguration();
   }
   
+  /**
+  * {@inheritdoc}
+  */
+  public function refundPayment(PaymentInterface $payment, Price $amount = NULL) {
+    $postdata = \Drupal::service('payment_asp.PaymentASPController')->getRefundDetails($this->configuration['merchant_id'], $this->configuration['service_id'], $payment, $amount);
+    $username = $this->configuration['merchant_id'] . $this->configuration['service_id'];
+    $password = $this->configuration['hashkey'];
+
+    // 接続URL
+    $url = "https://stbfep.sps-system.com/api/xmlapi.do";
+
+    $this->assertPaymentState($payment, ['completed', 'partially_refunded']);
+    // If not specified, refund the entire amount.
+    $amount = $amount ?: $payment->getAmount();
+    $this->assertRefundAmount($payment, $amount);
+
+    // $client = new Client();
+    // $res = $client->request('POST', $url, [
+    //     'auth' => [$username, $password]
+    // ]);
+
+    // Perform the refund request here, throw an exception if it fails.
+    try {
+      // データ送信処理
+      $client = HttpClient::create([
+        'auth_basic' => [$username, $password],
+      ]);
+      $response = $client->request('POST', $url, [
+        'headers' => [
+          'Content-Type' => 'text/xml',
+          'Cache-Control' => 'no-cache',
+          'Pragma' => 'no-cache',
+          'Expires' => '0',
+        ],
+        'body' => $postdata,
+      ]);
+      $content = $response->getContent();
+      $xml = simplexml_load_string($content);
+      $result = (string) $xml->res_result;
+    } catch (\Exception $e) {
+      \Drupal::logger('payment_asp')->notice('Error message about the failure');
+      throw new PaymentGatewayException('Error message about the failure');
+    }
+
+    ksm($content);
+
+    // if ($result == 'OK') {
+    //   // Determine whether payment has been fully or partially refunded.
+    //   $old_refunded_amount = $payment->getRefundedAmount();
+    //   $new_refunded_amount = $old_refunded_amount->add($amount);
+
+    //   if ($new_refunded_amount->lessThan($payment->getAmount())) {
+    //     $payment->setState('partially_refunded');
+    //   }
+    //   else {
+    //     $payment->setState('refunded');
+    //   }
+
+    //   $payment->setRefundedAmount($new_refunded_amount);
+    //   $payment->save();
+    // }
+
+  }
+
   /**
   * {@inheritdoc}
   */
@@ -164,8 +230,9 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
         $this->createPayment($request, 'completed', $res_amount_deposit);
 
        } elseif ($request->get('res_result') == 'CN') {
+          \Drupal::logger('payment_asp')->notice('CANCEL/EXPIRY '.$request);
           $order = \Drupal\commerce_order\Entity\Order::load(substr($request->get('order_id'), 0, -4));
-          $order->delete(); 
+          $order->delete();
        }
     } else {
       $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
