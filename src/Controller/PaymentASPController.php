@@ -317,24 +317,30 @@ class PaymentASPController extends ControllerBase {
 
     return $postdata;
   }
-  public function getRefundDetails($merchant_id, $service_id, $payment, $amount) {
+  public function getRefundDetails($merchant_id, $service_id, $hashkey, $payment, $amount) {
     $connection = \Drupal::database()
              ->select('payment_asp_pd')
              ->fields('payment_asp_pd')
              ->condition('p_fk_id', $payment->id())
              ->execute();
     $payment_asp_pd = $connection->fetchAssoc();
+    $payment_asp_pd = $payment_asp_pd['tracking_id'];
+    $payment_asp_pd_length = strlen($payment_asp_pd);
 
-    // ksm($payment_asp_pd['tracking_id']);
+    if ($payment_asp_pd_length != 14) {
+      $payment_asp_pd = sprintf('%014d', $payment_asp_pd);
+    }
+
     // API送信データ
     $merchant_id = $merchant_id;
     $service_id = $service_id;
     $sps_transaction_id = ''; 
-    $tracking_id = $payment_asp_pd['tracking_id'];
+    $tracking_id = $payment_asp_pd;
     $processing_datetime = date("YmdGis");
     $amount = number_format((float)$amount->getNumber(), 0, '.', '');
     $request_date = date("YmdGis");
     $limit_second = '';
+    $hashkey = $hashkey;
 
     // Shift_JIS変換
     $merchant_id              = mb_convert_encoding($merchant_id, 'Shift_JIS', 'UTF-8');
@@ -345,6 +351,8 @@ class PaymentASPController extends ControllerBase {
     $amount                   = mb_convert_encoding($amount, 'Shift_JIS', 'UTF-8');
     $request_date             = mb_convert_encoding($request_date, 'Shift_JIS', 'UTF-8');
     $limit_second             = mb_convert_encoding($limit_second, 'Shift_JIS', 'UTF-8');
+    $hashkey                  = mb_convert_encoding($hashkey, 'Shift_JIS', 'UTF-8');
+
 
     // 送信情報データ連結
     $result =
@@ -355,26 +363,40 @@ class PaymentASPController extends ControllerBase {
       $processing_datetime .
       $amount .
       $request_date .
-      $limit_second;
+      $limit_second .
+      $hashkey;
 
     // SHA1変換
-    $sps_hashcode = sha1( $result );
+    $sps_hashcode = sha1($result);
 
+      // var_dump($merchant_id);
+      // var_dump($service_id);
+      // var_dump($sps_transaction_id);
+      // var_dump($tracking_id);
+      // var_dump($processing_datetime);
+      // var_dump($amount);
+      // var_dump($request_date);
+      // var_dump($limit_second);
+      // var_dump($hashkey);
+      // var_dump($result);    
+      // var_dump($sps_hashcode);
+      // die();
     // POSTデータ生成
     $postdata =
         "<?xml version=\"1.0\" encoding=\"Shift_JIS\"?>" .
-        "<sps-api-request id=\"ST02-00303-101\">" .
+        "<sps-api-request id=\"ST02-00307-101\">" .
             "<merchant_id>"                 . $merchant_id              . "</merchant_id>" .
             "<service_id>"                  . $service_id               . "</service_id>" .
             "<sps_transaction_id>"          . $sps_transaction_id       . "</sps_transaction_id>" .
             "<tracking_id>"                 . $tracking_id              . "</tracking_id>" .
             "<processing_datetime>"         . $processing_datetime      . "</processing_datetime>" .
-            "<amount>"                      . $amount                   . "</amount>" .
+              "<pay_option_manage>" .
+                "<amount>"                  . $amount                   . "</amount>" .
+              "</pay_option_manage>" .
             "<request_date>"                . $request_date             . "</request_date>" .
             "<limit_second>"                . $limit_second             . "</limit_second>" .
             "<sps_hashcode>"                . $sps_hashcode             . "</sps_hashcode>" .
         "</sps-api-request>";
-
     return $postdata;
   }
 }

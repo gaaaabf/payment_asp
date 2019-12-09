@@ -54,7 +54,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
   * {@inheritdoc}
   */
   public function refundPayment(PaymentInterface $payment, Price $amount = NULL) {
-    $postdata = \Drupal::service('payment_asp.PaymentASPController')->getRefundDetails($this->configuration['merchant_id'], $this->configuration['service_id'], $payment, $amount);
+    $postdata = \Drupal::service('payment_asp.PaymentASPController')->getRefundDetails($this->configuration['merchant_id'], $this->configuration['service_id'], $this->configuration['hashkey'], $payment, $amount);
     $username = $this->configuration['merchant_id'] . $this->configuration['service_id'];
     $password = $this->configuration['hashkey'];
 
@@ -65,7 +65,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
     // If not specified, refund the entire amount.
     $amount = $amount ?: $payment->getAmount();
     $this->assertRefundAmount($payment, $amount);
-
+    ksm($postdata);
     // $client = new Client();
     // $res = $client->request('POST', $url, [
     //     'auth' => [$username, $password]
@@ -280,7 +280,7 @@ class PaymentASPCommerce_link_type extends OffsitePaymentGatewayBase implements 
     $connection->insert('payment_asp_pd')
       ->fields(array(
        'p_fk_id' => $payment->id(),
-       'tracking_id' => (string) $request->get('res_tracking_id'),
+       'tracking_id' => (int) $request->get('res_tracking_id'),
        'sps_transaction_id' => (int) $request->get('res_sps_transaction_id'),
        'processing_datetime' => (int) $request->get('res_process_date'),
       ))->execute();
