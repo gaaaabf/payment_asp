@@ -343,7 +343,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $form_state->setError($complete_form, $this->noPaymentGatewayErrorMessage());
     }
     
-    $billing_profile = $this->order->getBillingProfile();
+    //-----------------------ADDED BY RENDROID ------------------------
+
     $current_country = $pane_form['billing_information']['#inline_form'];
     $country_code = $current_country->getEntity()->get('address')->getValue();
 
@@ -352,9 +353,32 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
 
     $default_payment_gateway_id = $pane_form['payment_method']['#default_value'];
     $payment_gateway = $payment_gateways[$default_payment_gateway_id];
-      
-    if ($country_code[0]['country_code'] != 'JP' && ($payment_gateway->get('plugin') == 'manual' || $payment_gateway->get('configuration')['method_type'] == 'webcvs')) {
-        $form_state->setError($complete_form, 'THIS BILLING ADDRESS only AVAILABLE IN JAPAN');
+
+    $shipping_address =  $this->order->getData('shipping_address');
+    $recalculate_validity  =  $this->order->getData('recalculate_validity');
+    
+    if( $country_code[0]['country_code'] != 'JP'  &&
+      ( $payment_gateway->get('plugin') == 'manual' || $payment_gateway->get('configuration')['method_type'] == 'webcvs') && 
+       !$recalculate_validity) {
+                $form_state->setError($complete_form, ':) THIS BILLING ADDRESS only AVAILABLE IN JAPAN & Please Click Recalculate , Shipping Fee Not Match');
+    }
+    elseif( $country_code[0]['country_code'] != 'JP' &&
+          ( $payment_gateway->get('plugin') == 'manual' || $payment_gateway->get('configuration')['method_type'] == 'webcvs') &&
+            $recalculate_validity) {
+                $form_state->setError($complete_form, ':) THIS BILLING ADDRESS only AVAILABLE IN JAPAN');
+    }
+    elseif ($shipping_address != 'JP'  && 
+            $payment_gateway->id() == 'cash_on_delivery' &&
+           !$recalculate_validity) {
+                $form_state->setError($complete_form, ' Cash on Delivery only Available in JAPAN & Please Click Recalculate , Shipping Fee Not Match');
+    }
+    elseif ($shipping_address != 'JP'  && 
+            $payment_gateway->id() == 'cash_on_delivery' &&
+            $recalculate_validity) {
+                $form_state->setError($complete_form, ' Cash on Delivery only Available in JAPAN ');
+    }    
+    elseif (!$recalculate_validity) {
+        $form_state->setError($complete_form, ' Please Click Recalculate , Shipping Fee Not Match');
     }
   }
 
