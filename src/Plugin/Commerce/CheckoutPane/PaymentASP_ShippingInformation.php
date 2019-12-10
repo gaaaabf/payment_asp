@@ -122,8 +122,7 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
   public function buildConfigurationSummary() {
     if (!empty($this->configuration['require_shipping_profile'])) {
       $summary = $this->t('Hide shipping costs until an address is entered: Yes');
-    }
-    else {
+    } else {
       $summary = $this->t('Hide shipping costs until an address is entered: No');
     }
 
@@ -197,7 +196,6 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
       $available_countries[] = $country_item->value;
     }
     $shipping_profile = $this->getShippingProfile();
-    // ksm($shipping_profile);
     /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
     $inline_form = $this->inlineFormManager->createInstance('customer_profile', [
       'profile_scope' => 'shipping',
@@ -246,8 +244,7 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
     if ($recalculate_shipping) {
       // Use the shipping profile set in validatePaneForm().
       $shipping_profile = $form_state->get('shipping_profile');
-    }
-    else {
+    } else {
       // Take the processed profile from the inline form, it
       // might have been pre-filled from the address book.
       $shipping_profile = $inline_form->getEntity();
@@ -277,8 +274,6 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
       $form_display->buildForm($shipment, $pane_form['shipments'][$index], $form_state);
       $pane_form['shipments'][$index]['#shipment'] = $shipment;
     }
-// ksm($pane_form['shipping_profile']['#inline_form']);
-
     return $pane_form;
   }
 
@@ -291,9 +286,9 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
     return NestedArray::getValue($form, $parents);
   }
 
-   /**
-   * {@inheritdoc}
-   */
+  /**
+  * {@inheritdoc}
+  */
   public function validatePaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
     $shipment_indexes = Element::children($pane_form['shipments']);
     $triggering_element = $form_state->getTriggeringElement();
@@ -316,12 +311,12 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
       $form_state->set('shipping_profile', $inline_form->getEntity());
     }
 
-//------------------------------------------ADDED BY RENDROID---------------------------
+    //------------------------------------------ADDED BY RENDROID---------------------------
       $locality = $pane_form['shipping_profile']['#inline_form']->getEntity()->get('address')->getValue();
       $country_code = $locality[0]['country_code'];
       $administrative_area =  $locality[0]['administrative_area'];
-//------------------------------------------------------------------------------------------------------
-    
+    //------------------------------------------------------------------------------------------------------
+
 
     foreach ($shipment_indexes as $index) {
       $shipment = clone $pane_form['shipments'][$index]['#shipment'];
@@ -329,76 +324,66 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
       $form_display->removeComponent('shipping_profile');
       $form_display->extractFormValues($shipment, $pane_form['shipments'][$index], $form_state);
       $form_display->validateFormValues($shipment, $pane_form['shipments'][$index], $form_state);
-       
-        // -------------------------------ADDED INSIDE FOREACH -----------------
-       
-       $configuration = $shipment->getShippingMethod()->get('conditions');
-       if($configuration->get(0) !== NULL){
-			 $configuration->get(0)->getValue();
-	         $plugin_configuration = $configuration->get(0)->getValue();
-	         $territories = $plugin_configuration['target_plugin_configuration']['zone']['territories'];
-	         $negate      = $plugin_configuration['target_plugin_configuration']['negate'];     
-	         $valid = FALSE;
-	          if($territories != NULL){
-	             foreach ($territories as $key => $value) {
-	             
-	                  if( ($value['administrative_area'] === NULL ||  $value['administrative_area'] === "" ) && $value['country_code'] !== ""){
-	                        if($negate){
-	                            if($value['country_code'] === $country_code){
-	                               $valid = FALSE;
-	                               break;
-	                            }
-	                            else{
-	                                $valid = TRUE;
-	                                break;
-	                            } 
-	                        }
-	                        else{
-	                            if($value['country_code'] === $country_code){
-	                               $valid = TRUE;
-	                               break;
-	                            } 
-	                        }  
-	                  }
-	                  elseif( ($value['administrative_area'] !== NULL || $value['administrative_area'] !== "" )&& $value['country_code'] !== "" ){
 
-	                        if($negate){
-	                            if($value['country_code'] === $country_code && $value['administrative_area'] === $administrative_area){
-	                               $valid = FALSE;
-	                               break;
-	                            }
-	                            else{
-	                                $valid = TRUE;
-	                                break;
-	                            } 
-	                        }
-	                        else{
-	                            if($value['country_code'] === $country_code && $value['administrative_area'] === $administrative_area){
-	                               $valid = TRUE;
-	                               break;
-	                            } 
-	                        }
-	                  }
-	                  else{
-	                         $valid = TRUE;
-	                         break;
-	                } 
-	             }
-	           }
-	        }
-	      }  //end foreach
-		$this->order->setData('recalculate_validity',$valid);
-        $this->order->setData('shipping_address', $country_code);
-        $this->order->save();
- }
+    // -------------------------------ADDED INSIDE FOREACH -----------------
+
+      $configuration = $shipment->getShippingMethod()->get('conditions');
+      if ($configuration->get(0) !== NULL) {
+        $configuration->get(0)->getValue();
+        $plugin_configuration = $configuration->get(0)->getValue();
+        $territories = $plugin_configuration['target_plugin_configuration']['zone']['territories'];
+        $negate      = $plugin_configuration['target_plugin_configuration']['negate'];     
+        $valid = FALSE;
+        if ($territories != NULL) {
+          foreach ($territories as $key => $value) {
+            if (($value['administrative_area'] === NULL ||  $value['administrative_area'] === "" ) && $value['country_code'] !== "") {
+              if ($negate) {
+                if ($value['country_code'] === $country_code) {
+                  $valid = FALSE;
+                  break;
+                } else {
+                  $valid = TRUE;
+                  break;
+                } 
+              } else {
+                if ($value['country_code'] === $country_code) {
+                  $valid = TRUE;
+                  break;
+                } 
+              }  
+            } elseif (($value['administrative_area'] !== NULL || $value['administrative_area'] !== "" )&& $value['country_code'] !== "" ) {
+
+              if ($negate) {
+                if ($value['country_code'] === $country_code && $value['administrative_area'] === $administrative_area) {
+                  $valid = FALSE;
+                  break;
+                } else {
+                  $valid = TRUE;
+                  break;
+                } 
+              } else {
+                if ($value['country_code'] === $country_code && $value['administrative_area'] === $administrative_area) {
+                  $valid = TRUE;
+                  break;
+                } 
+              }
+            } else {
+              $valid = TRUE;
+              break;
+            } 
+          }
+        }
+      }
+    }  //end foreach
+    $this->order->setData('recalculate_validity',$valid);
+    $this->order->setData('shipping_address', $country_code);
+    $this->order->save();
+  }
 
   /**
    * {@inheritdoc}
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
-
-
-    ksm('shipping submit');
     /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
     $inline_form = $pane_form['shipping_profile']['#inline_form'];
     /** @var \Drupal\profile\Entity\ProfileInterface $profile */
@@ -430,24 +415,24 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
     // $shipping_method = $shipment->getShippingMethod();
     // $configuration = $shipping_method->get('conditions');
 
-    // if($configuration->get(0) !== NULL){
+    // if ($configuration->get(0) !== NULL) {
 
     //    $configuration->get(0)->getValue();
     //    $plugin_configuration = $configuration->get(0)->getValue();
     //    $territories = $plugin_configuration['target_plugin_configuration']['zone']['territories'];
       
     //     $valid = FALSE;
-    //     if($territories != NULL){
+    //     if ($territories != NULL) {
     //        foreach ($territories as $key => $value) {
-    //           if( $value['administrative_area'] == NULL){
-    //               if($value['country_code'] == $country_code ){
+    //           if ( $value['administrative_area'] == NULL) {
+    //               if ($value['country_code'] == $country_code ) {
     //                   ksm($value['country_code']);
     //                  $valid = TRUE;
     //                  break;
     //                }
     //             }
-    //           else{
-    //              if($value['country_code'] == $country_code && $value['administrative_area'] == $administrative_area){
+    //           else {
+    //              if ($value['country_code'] == $country_code && $value['administrative_area'] == $administrative_area) {
     //                  ksm($value['country_code']);
     //                  ksm($value['administrative_area']);
     //                  $valid = TRUE;
@@ -455,7 +440,7 @@ class PaymentASP_ShippingInformation extends CheckoutPaneBase implements Contain
     //               }
     //           } 
     //        }
-    //        if($valid == FALSE){
+    //        if ($valid == FALSE) {
     //           $form_state->setError($complete_form, 'PLEASE RECALCULATE SHIPPING');
     //         }
     //     }
