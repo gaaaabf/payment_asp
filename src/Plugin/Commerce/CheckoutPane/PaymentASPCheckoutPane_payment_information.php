@@ -126,8 +126,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     if ($payment_method) {
       $view_builder = $this->entityTypeManager->getViewBuilder('commerce_payment_method');
       $summary = $view_builder->view($payment_method, 'default');
-    }
-    else {
+    } else {
       $summary = [
         'payment_gateway' => [
           '#markup' => $payment_gateway->getPlugin()->getDisplayLabel(),
@@ -182,8 +181,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     $default_option_id = NestedArray::getValue($form_state->getUserInput(), $parents);
     if ($default_option_id && isset($options[$default_option_id])) {
       $default_option = $options[$default_option_id];
-    }
-    else {
+    } else {
       $default_option = $this->paymentOptionsBuilder->selectDefaultOption($this->order, $options);
     }
 
@@ -343,7 +341,8 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $form_state->setError($complete_form, $this->noPaymentGatewayErrorMessage());
     }
     
-    $billing_profile = $this->order->getBillingProfile();
+    //-----------------------ADDED BY RENDROID ------------------------
+
     $current_country = $pane_form['billing_information']['#inline_form'];
     $country_code = $current_country->getEntity()->get('address')->getValue();
 
@@ -352,9 +351,20 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
 
     $default_payment_gateway_id = $pane_form['payment_method']['#default_value'];
     $payment_gateway = $payment_gateways[$default_payment_gateway_id];
-      
-    if ($country_code[0]['country_code'] != 'JP' && ($payment_gateway->get('plugin') == 'manual' || $payment_gateway->get('configuration')['method_type'] == 'webcvs')) {
-        $form_state->setError($complete_form, 'THIS BILLING ADDRESS only AVAILABLE IN JAPAN');
+
+    $shipping_address =  $this->order->getData('shipping_address');
+    $recalculate_validity  =  $this->order->getData('recalculate_validity');
+    
+    if ($country_code[0]['country_code'] != 'JP'  && ( $payment_gateway->get('plugin') == 'manual' || $payment_gateway->get('configuration')['method_type'] == 'webcvs') && !$recalculate_validity) {
+      $form_state->setError($complete_form, ':) THIS BILLING ADDRESS only AVAILABLE IN JAPAN & Please Click Recalculate , Shipping Fee Not Match');
+    } elseif ( $country_code[0]['country_code'] != 'JP' && ( $payment_gateway->get('plugin') == 'manual' || $payment_gateway->get('configuration')['method_type'] == 'webcvs') && $recalculate_validity) {
+      $form_state->setError($complete_form, ':) THIS BILLING ADDRESS only AVAILABLE IN JAPAN');
+    } elseif ($shipping_address != 'JP' && $payment_gateway->id() == 'cash_on_delivery' && !$recalculate_validity) {
+      $form_state->setError($complete_form, 'Cash on Delivery only Available in JAPAN & Please Click Recalculate , Shipping Fee Not Match');
+    } elseif ($shipping_address != 'JP' && $payment_gateway->id() == 'cash_on_delivery' && $recalculate_validity) {
+      $form_state->setError($complete_form, ' Cash on Delivery only Available in JAPAN ');
+    } elseif (!$recalculate_validity) {
+      $form_state->setError($complete_form, ' Please Click Recalculate , Shipping Fee Not Match');
     }
   }
 
@@ -362,7 +372,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
    * {@inheritdoc}
    */
   public function submitPaneForm(array &$pane_form, FormStateInterface $form_state, array &$complete_form) {
-
     
     if (isset($pane_form['billing_information'])) {
       /** @var \Drupal\commerce\Plugin\Commerce\InlineForm\EntityInlineFormInterface $inline_form */
@@ -388,7 +397,6 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
     $payment_gateway_storage = $this->entityTypeManager->getStorage('commerce_payment_gateway');
     /** @var \Drupal\commerce_payment\Entity\PaymentGatewayInterface $payment_gateway */
     $payment_gateway = $payment_gateway_storage->load($selected_option->getPaymentGatewayId());
- 
 
     if (!$payment_gateway) {
       return;
@@ -400,8 +408,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         $inline_form = $pane_form['add_payment_method']['#inline_form'];
         // The payment method was just created.
         $payment_method = $inline_form->getEntity();
-      }
-      else {
+      } else {
         /** @var \Drupal\commerce_payment\PaymentMethodStorageInterface $payment_method_storage */
         $payment_method_storage = $this->entityTypeManager->getStorage('commerce_payment_method');
         $payment_method = $payment_method_storage->load($selected_option->getPaymentMethodId());
@@ -434,17 +441,13 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
         $billing_profile->save();
         $this->order->setBillingProfile($billing_profile);
       }
-    }
-    else {
-
-
+    } else {
       $this->order->set('payment_gateway', $payment_gateway);
       //$this->order->set('payment_method', NULL);
       /** ADDED BY RENDROID  */
       $this->order->setData('payment_gateway_parameter', $pane_form['fieldset']['#value']); 
       $this->order->setData('billing_profile_givenName',$givenName);
       $this->order->setData('billing_profile_familyName',$familyName);
-       
     }
   }
 
@@ -459,8 +462,7 @@ class PaymentASPCheckoutPane_payment_information extends CheckoutPaneBase {
       $message = $this->t('There are no <a href=":url"">payment gateways</a> available for this order.', [
         ':url' => Url::fromRoute('entity.commerce_payment_gateway.collection')->toString(),
       ]);
-    }
-    else {
+    } else {
       $message = $this->t('There are no payment gateways available for this order. Please try again later.');
     }
     return $message;
