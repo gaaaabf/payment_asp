@@ -28,7 +28,7 @@ use Drupal\Core\Messenger\MessengerInterface;
  *
  * @CommerceCheckoutPane(
  *   id = "payment_asp_payment_information",
- *   label = @Translation("Payment information"),
+ *   label = @Translation("Payment information - Payment ASP"),
  *   wrapper_element = "fieldset",
  * )
  */
